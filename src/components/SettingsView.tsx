@@ -167,6 +167,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ initialTab = 'typogr
     setErrorMsg(null);
     try {
       const res = await api.factoryReset();
+      try {
+        localStorage.removeItem('cash_transfer_cached_stats');
+        localStorage.removeItem('cash_transfers_local_store_v1');
+      } catch {}
       setResetSuccessMessage(res.message || 'تمت إعادة ضبط المصنع وتصفير الأرصدة بنجاح!');
       setTimeout(() => {
         window.location.reload();

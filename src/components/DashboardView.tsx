@@ -801,7 +801,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         
         {/* Recharts Interactive Weekly Transfers Chart (lg:col-span-8) */}
         <div className="lg:col-span-8">
-          <WeeklyTransfersChart data={stats.last7Days} />
+          <WeeklyTransfersChart data={stats.last7Days || []} />
         </div>
 
         {/* Side Column: Limits Gauges & Warning Cards (lg:col-span-4) */}
@@ -827,7 +827,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     />
                     <path
                       className="text-emerald-500 transition-all duration-1000 ease-out"
-                      strokeDasharray={`${stats.dailyLimitPercent}, 100`}
+                      strokeDasharray={`${stats.dailyLimitPercent ?? 0}, 100`}
                       strokeWidth="3.5"
                       strokeLinecap="round"
                       stroke="currentColor"
@@ -836,11 +836,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     />
                   </svg>
                   <div className="absolute text-center">
-                    <span className="text-base sm:text-lg font-black text-white font-mono">{formatCount(stats.dailyLimitPercent)}%</span>
+                    <span className="text-base sm:text-lg font-black text-white font-mono">{formatCount(stats.dailyLimitPercent ?? 0)}%</span>
                   </div>
                 </div>
                 <span className="text-xs font-bold text-slate-200 mt-2">الحد اليومي</span>
-                <span className="text-[11px] text-emerald-400 font-semibold">متبقي: {formatCount(stats.remainingDailyPercent)}%</span>
+                <span className="text-[11px] text-emerald-400 font-semibold">متبقي: {formatCount(stats.remainingDailyPercent ?? (100 - (stats.dailyLimitPercent ?? 0)))}%</span>
               </div>
 
               {/* Monthly Dial */}
@@ -856,7 +856,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     />
                     <path
                       className="text-cyan-500 transition-all duration-1000 ease-out"
-                      strokeDasharray={`${stats.monthlyLimitPercent}, 100`}
+                      strokeDasharray={`${stats.monthlyLimitPercent ?? 0}, 100`}
                       strokeWidth="3.5"
                       strokeLinecap="round"
                       stroke="currentColor"
@@ -865,11 +865,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     />
                   </svg>
                   <div className="absolute text-center">
-                    <span className="text-base sm:text-lg font-black text-white font-mono">{formatCount(stats.monthlyLimitPercent)}%</span>
+                    <span className="text-base sm:text-lg font-black text-white font-mono">{formatCount(stats.monthlyLimitPercent ?? 0)}%</span>
                   </div>
                 </div>
                 <span className="text-xs font-bold text-slate-200 mt-2">الحد الشهري</span>
-                <span className="text-[11px] text-cyan-400 font-semibold">متبقي: {formatCount(stats.remainingMonthlyPercent)}%</span>
+                <span className="text-[11px] text-cyan-400 font-semibold">متبقي: {formatCount(stats.remainingMonthlyPercent ?? (100 - (stats.monthlyLimitPercent ?? 0)))}%</span>
               </div>
             </div>
 
@@ -901,7 +901,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
 
             <div className="space-y-2.5">
-              {stats.linesClosestToLimits.slice(0, 3).map((line) => {
+              {(stats.linesClosestToLimits || []).slice(0, 3).map((line) => {
                 const isHigh = line.maxUtilization >= 80;
                 return (
                   <div key={line.id} className="space-y-1">

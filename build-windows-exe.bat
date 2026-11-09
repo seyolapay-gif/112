@@ -14,8 +14,12 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-echo 2. بناء ملفات الواجهة والإنتاج (Vite Production Build)...
+echo 2. تنظيف مخرجات البناء القديمة لضمان تحديث كافة الملفات...
 if exist dist rmdir /s /q dist
+if exist dist-electron rmdir /s /q dist-electron
+if exist node_modules\.vite rmdir /s /q node_modules\.vite
+
+echo 3. بناء ملفات الواجهة والإنتاج الحديثة (Vite Production Build)...
 set ELECTRON_BUILD=true
 set NODE_ENV=production
 call npm run build
@@ -25,7 +29,7 @@ if %errorlevel% neq 0 (
     exit /b 1
 )
 
-echo 3. بناء وتجهيز تطبيق سطح المكتب المستقل...
+echo 4. بناء وتجهيز تطبيق سطح المكتب المستقل (.exe)...
 call npx electron-builder --win --x64
 if %errorlevel% neq 0 (
     echo.

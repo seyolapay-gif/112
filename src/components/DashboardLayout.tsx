@@ -66,8 +66,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const loadTotalProjectFunds = async () => {
     try {
       const data = await api.getTotalProjectFunds();
-      if (data && typeof data.totalProjectFunds === 'number') {
-        setTotalProjectFunds(data.totalProjectFunds);
+      const val = (data && typeof data.totalProjectFunds === 'number') 
+        ? data.totalProjectFunds 
+        : ((data as any)?.grandTotal !== undefined ? (data as any).grandTotal : null);
+      if (typeof val === 'number') {
+        setTotalProjectFunds(val);
       }
     } catch {
       // Fallback: calculate from vaults + lines

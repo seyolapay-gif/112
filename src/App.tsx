@@ -60,13 +60,26 @@ class TabErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundary
           <p className="text-xs text-slate-400 mb-5 leading-relaxed">
             حدث خطأ غير متوقع أثناء معالجة البيانات، تم حفظ حالة التطبيق ويمكنك إعادة المحاولة بأمان.
           </p>
-          <button
-            onClick={() => this.setState({ hasError: false, error: null })}
-            className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition cursor-pointer shadow-lg shadow-emerald-600/20 inline-flex items-center gap-2"
-          >
-            <RefreshCw className="w-4 h-4" />
-            <span>إعادة تحميل الشاشة</span>
-          </button>
+          <div className="flex items-center justify-center gap-3 flex-wrap">
+            <button
+              onClick={() => this.setState({ hasError: false, error: null })}
+              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition cursor-pointer shadow-lg shadow-emerald-600/20 inline-flex items-center gap-2"
+            >
+              <RefreshCw className="w-4 h-4" />
+              <span>إعادة تحميل الشاشة</span>
+            </button>
+            <button
+              onClick={() => {
+                try {
+                  localStorage.removeItem('cash_transfer_cached_stats');
+                } catch {}
+                window.location.reload();
+              }}
+              className="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition cursor-pointer inline-flex items-center gap-2"
+            >
+              <span>تحديث شامل والتنظيف</span>
+            </button>
+          </div>
         </div>
       );
     }

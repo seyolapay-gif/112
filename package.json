@@ -52,7 +52,8 @@
       "perMachine": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "نظام إدارة التحويلات الذكي"
+      "shortcutName": "نظام إدارة التحويلات الذكي",
+      "deleteAppDataOnUninstall": true
     }
   },
   "dependencies": {

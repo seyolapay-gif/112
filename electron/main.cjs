@@ -68,6 +68,26 @@ function createWindow() {
     autoHideMenuBar: true,
   });
 
+  // Clear HTTP cache on launch to guarantee updated frontend assets are loaded immediately
+  mainWindow.webContents.session.clearCache().catch(() => {});
+
+  // Enable F5, Ctrl+R (Hard Reload) and Ctrl+Shift+I (DevTools toggle)
+  mainWindow.webContents.on('before-input-event', (event, input) => {
+    if (input.type === 'keyDown') {
+      if (input.key === 'F5' || (input.control && input.key.toLowerCase() === 'r')) {
+        mainWindow.webContents.session.clearCache().then(() => {
+          mainWindow.webContents.reloadIgnoringCache();
+        }).catch(() => {
+          mainWindow.webContents.reloadIgnoringCache();
+        });
+        event.preventDefault();
+      } else if (input.control && input.shift && input.key.toLowerCase() === 'i') {
+        mainWindow.webContents.toggleDevTools();
+        event.preventDefault();
+      }
+    }
+  });
+
   // Load local web app
   mainWindow.loadURL(`http://127.0.0.1:${PORT}`);
 

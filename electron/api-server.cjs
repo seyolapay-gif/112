@@ -476,41 +476,220 @@ module.exports = function registerApiRoutes(app, dataDir) {
     });
   });
 
-  // Dashboard Stats
-  app.get('/api/dashboard/stats', authMiddleware, (req, res) => {
-    const todayStr = new Date().toISOString().slice(0, 10);
-    const monthStr = new Date().toISOString().slice(0, 7);
+  function calculateLineUsage(lineId) {
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+    const currentYearMonth = now.toISOString().slice(0, 7);
 
-    const totalBalance = (db.cashLines || []).reduce((sum, l) => sum + (l.balance || 0), 0);
-    let todayVolume = 0;
+    const validTransfers = (db.transfers || []).filter((t) => 
+      t.sourceLineId === lineId && 
+      t.transferType !== 'receive_money' &&
+      (t.status === 'completed' || t.status === 'pending_verification')
+    );
+
+    let todayUsed = 0;
     let todayCount = 0;
-    let monthVolume = 0;
+    let monthUsed = 0;
     let monthCount = 0;
 
-    (db.transfers || []).forEach(t => {
-      if (t.status === 'completed' && t.transferType !== 'receive_money') {
-        const d = (t.timestamp || '').slice(0, 10);
-        const m = (t.timestamp || '').slice(0, 7);
-        if (d === todayStr) {
-          todayVolume += (t.amount || 0);
-          todayCount++;
-        }
-        if (m === monthStr) {
-          monthVolume += (t.amount || 0);
-          monthCount++;
-        }
+    for (const t of validTransfers) {
+      const tDate = (t.timestamp || '').slice(0, 10);
+      const tMonth = (t.timestamp || '').slice(0, 7);
+
+      if (tDate === todayStr) {
+        todayUsed += (t.amount || 0);
+        todayCount++;
       }
+      if (tMonth === currentYearMonth) {
+        monthUsed += (t.amount || 0);
+        monthCount++;
+      }
+    }
+
+    const line = (db.cashLines || []).find((l) => l.id === lineId);
+    const dailyLimit = line?.dailyLimit || 60000;
+    const monthlyLimit = line?.monthlyLimit || 200000;
+
+    return {
+      todayUsed,
+      todayCount,
+      remainingDaily: Math.max(0, dailyLimit - todayUsed),
+      dailyUtilizationPercent: dailyLimit > 0 ? Math.min(100, Math.round((todayUsed / dailyLimit) * 100)) : 0,
+      monthUsed,
+      monthCount,
+      remainingMonthly: Math.max(0, monthlyLimit - monthUsed),
+      monthlyUtilizationPercent: monthlyLimit > 0 ? Math.min(100, Math.round((monthUsed / monthlyLimit) * 100)) : 0,
+    };
+  }
+
+  // Dashboard Stats - Full parity with server.ts
+  app.get('/api/dashboard/stats', authMiddleware, (req, res) => {
+    const now = new Date();
+    const todayStr = now.toISOString().slice(0, 10);
+    const monthStr = now.toISOString().slice(0, 7);
+
+    const periodParam = req.query.period || 'today';
+    let startDate = todayStr;
+    let endDate = todayStr;
+    let periodLabel = 'اليوم';
+
+    if (periodParam === 'yesterday') {
+      const y = new Date(now);
+      y.setDate(y.getDate() - 1);
+      startDate = y.toISOString().slice(0, 10);
+      endDate = startDate;
+      periodLabel = 'الأمس';
+    } else if (periodParam === 'this_week') {
+      const day = now.getDay();
+      const diff = (day + 1) % 7;
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - diff);
+      startDate = weekStart.toISOString().slice(0, 10);
+      endDate = todayStr;
+      periodLabel = 'الأسبوع الحالي';
+    } else if (periodParam === 'this_month') {
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+      startDate = monthStart.toISOString().slice(0, 10);
+      endDate = todayStr;
+      periodLabel = 'الشهر الحالي';
+    } else if (periodParam === 'custom') {
+      startDate = req.query.from || todayStr;
+      endDate = req.query.to || todayStr;
+      periodLabel = `من ${startDate} إلى ${endDate}`;
+    }
+
+    const periodTransfers = (db.transfers || []).filter((t) => {
+      const d = (t.timestamp || '').slice(0, 10);
+      return d >= startDate && d <= endDate;
     });
 
-    const activeLines = (db.cashLines || []).filter(l => l.status === 'active').length;
+    const completedInPeriod = periodTransfers.filter((t) => t.status === 'completed');
+    const failedInPeriod = periodTransfers.filter((t) => t.status === 'failed' || t.status === 'cancelled');
+
+    const periodTransfersCount = periodTransfers.length;
+    const periodTransfersValue = completedInPeriod.reduce((sum, t) => sum + (t.amount || 0), 0);
+    const periodSuccessfulCount = completedInPeriod.length;
+    const periodFailedCount = failedInPeriod.length;
+    const periodSuccessRate = periodTransfersCount > 0 
+      ? ((periodSuccessfulCount / periodTransfersCount) * 100).toFixed(1) 
+      : '100.0';
+
+    const periodCommissions = completedInPeriod.reduce((sum, t) => sum + (t.fee || 0), 0);
+    const periodIncomingTransfers = completedInPeriod.filter((t) => t.transferType === 'receive_money');
+    const periodOutgoingTransfers = completedInPeriod.filter((t) => t.transferType !== 'receive_money');
+    const periodIncomingValue = periodIncomingTransfers.reduce((sum, t) => sum + (t.amount || 0), 0);
+    const periodOutgoingValue = periodOutgoingTransfers.reduce((sum, t) => sum + (t.amount || 0), 0);
+    const periodIncomingCount = periodIncomingTransfers.length;
+    const periodOutgoingCount = periodOutgoingTransfers.length;
+
+    const todayTransfers = (db.transfers || []).filter((t) => (t.timestamp || '').slice(0, 10) === todayStr);
+    const monthTransfers = (db.transfers || []).filter((t) => (t.timestamp || '').slice(0, 7) === monthStr);
+
+    const completedToday = todayTransfers.filter((t) => t.status === 'completed');
+    const totalTransfersTodayCount = todayTransfers.length;
+    const totalTransfersTodayValue = completedToday.reduce((sum, t) => sum + (t.amount || 0), 0);
+
+    const completedMonth = monthTransfers.filter((t) => t.status === 'completed');
+    const totalTransfersMonthCount = monthTransfers.length;
+    const totalTransfersMonthValue = completedMonth.reduce((sum, t) => sum + (t.amount || 0), 0);
+
+    const successfulOperationsCount = periodSuccessfulCount;
+    const failedOrCancelledCount = periodFailedCount;
+    const successRatePercent = periodSuccessRate;
+    const totalCommissionsAndProfits = periodCommissions;
+
+    const totalLiquidity = (db.cashLines || [])
+      .filter((l) => l.status === 'active')
+      .reduce((sum, l) => sum + (l.balance || 0), 0);
+
+    const totalDailyLimit = (db.cashLines || []).reduce((sum, l) => sum + (l.dailyLimit || 0), 0);
+    const totalDailyUsed = (db.cashLines || []).reduce((sum, l) => sum + calculateLineUsage(l.id).todayUsed, 0);
+    const dailyLimitPercent = totalDailyLimit > 0 ? Math.round((totalDailyUsed / totalDailyLimit) * 100) : 0;
+
+    const totalMonthlyLimit = (db.cashLines || []).reduce((sum, l) => sum + (l.monthlyLimit || 0), 0);
+    const totalMonthlyUsed = (db.cashLines || []).reduce((sum, l) => sum + calculateLineUsage(l.id).monthUsed, 0);
+    const monthlyLimitPercent = totalMonthlyLimit > 0 ? Math.round((totalMonthlyUsed / totalMonthlyLimit) * 100) : 0;
+
+    const linesWithUsage = (db.cashLines || []).map((line) => {
+      const usage = calculateLineUsage(line.id);
+      return {
+        id: line.id,
+        name: line.name,
+        provider: line.provider,
+        phoneNumber: line.phoneNumber,
+        dailyUtilizationPercent: usage.dailyUtilizationPercent,
+        monthlyUtilizationPercent: usage.monthlyUtilizationPercent,
+        maxUtilization: Math.max(usage.dailyUtilizationPercent, usage.monthlyUtilizationPercent),
+        remainingDaily: usage.remainingDaily,
+        remainingMonthly: usage.remainingMonthly,
+      };
+    }).sort((a, b) => b.maxUtilization - a.maxUtilization);
+
+    const days = ['السبت', 'الأحد', 'الاثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة'];
+    const last7Days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dStr = d.toISOString().slice(0, 10);
+      const dayIdx = (d.getDay() + 1) % 7;
+      const dayName = days[dayIdx] || 'اليوم';
+
+      const dayTransfers = (db.transfers || []).filter((t) => (t.timestamp || '').slice(0, 10) === dStr);
+      const completedDayTransfers = dayTransfers.filter((t) => t.status === 'completed');
+
+      const inc = completedDayTransfers.filter((t) => t.transferType === 'receive_money');
+      const out = completedDayTransfers.filter((t) => t.transferType !== 'receive_money');
+      const incomingValue = inc.reduce((s, t) => s + (t.amount || 0), 0);
+      const outgoingValue = out.reduce((s, t) => s + (t.amount || 0), 0);
+      const totalValue = incomingValue + outgoingValue;
+
+      last7Days.push({
+        date: dStr,
+        label: `${d.getDate()} ${dayName}`,
+        dayName,
+        count: completedDayTransfers.length,
+        value: totalValue,
+        incomingValue,
+        incomingCount: inc.length,
+        outgoingValue,
+        outgoingCount: out.length,
+        totalValue,
+        netFlow: incomingValue - outgoingValue,
+      });
+    }
+
+    const recentTransfers = [...(db.transfers || [])]
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+      .slice(0, 5);
+
     res.json({
-      totalBalance,
-      todayVolume,
-      todayCount,
-      monthVolume,
-      monthCount,
-      activeLines,
-      totalLines: (db.cashLines || []).length,
+      period: periodParam,
+      periodLabel,
+      startDate,
+      endDate,
+      periodTransfersCount,
+      periodTransfersValue,
+      periodIncomingValue,
+      periodIncomingCount,
+      periodOutgoingValue,
+      periodOutgoingCount,
+      periodTransfersList: periodTransfers.slice(0, 50),
+      todayTransfersCount: totalTransfersTodayCount,
+      todayTransfersValue: totalTransfersTodayValue,
+      monthTransfersCount: totalTransfersMonthCount,
+      monthTransfersValue: totalTransfersMonthValue,
+      successfulOperationsCount,
+      failedOrCancelledCount,
+      successRatePercent,
+      totalCommissionsAndProfits,
+      totalLiquidity,
+      dailyLimitPercent,
+      remainingDailyPercent: Math.max(0, 100 - dailyLimitPercent),
+      monthlyLimitPercent,
+      remainingMonthlyPercent: Math.max(0, 100 - monthlyLimitPercent),
+      linesClosestToLimits: linesWithUsage.slice(0, 4),
+      last7Days,
+      recentTransfers: periodTransfers.length > 0 ? periodTransfers.slice(0, 10) : recentTransfers,
     });
   });
 
@@ -527,12 +706,14 @@ module.exports = function registerApiRoutes(app, dataDir) {
     const grandTotal = mainVaultBalance + subVaultsBalance + totalLinesBalance;
 
     res.json({
+      totalProjectFunds: grandTotal,
       grandTotal,
       mainVaultBalance,
       subVaultsBalance,
       customerVaultBalance,
       linesBalance: totalLinesBalance,
       currency: db.settings?.currency || 'ج.م',
+      timestamp: new Date().toISOString(),
     });
   });
 
