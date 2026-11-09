@@ -1390,45 +1390,78 @@ export const api = {
   },
 
   async factoryReset(): Promise<{ success: boolean; message: string }> {
+    const zeroLines = DEFAULT_FALLBACK_LINES.map((l) => ({
+      ...l,
+      balance: 0,
+      todayUsed: 0,
+      monthUsed: 0,
+      todayCount: 0,
+      monthCount: 0,
+      updatedAt: new Date().toISOString(),
+    }));
+
+    const zeroVaults = DEFAULT_FALLBACK_VAULTS.map((v) => ({
+      ...v,
+      balance: 0,
+      allocatedBalance: 0,
+      totalIn: 0,
+      totalOut: 0,
+      lastTransactionAmount: 0,
+      lastTransactionType: undefined,
+      lastTransactionAt: undefined,
+      updatedAt: new Date().toISOString(),
+    }));
+
+    const cleanSeed: LocalDB = {
+      users: DEFAULT_USERS,
+      cashLines: zeroLines,
+      transfers: [],
+      auditLogs: [
+        {
+          id: `aud_reset_${Date.now()}`,
+          timestamp: new Date().toISOString(),
+          operatorId: 'usr_admin',
+          operatorName: 'عادل فتحي',
+          action: 'إعادة ضبط المصنع (Factory Reset)',
+          details: 'تم تصفير كافة الأرصدة (رصيد البرنامج صفر، ورصيد جميع الخطوط والحسابات والخزن صفر) ومسح كامل لسجلات العمليات والتحويلات',
+          ipAddress: '127.0.0.1',
+        },
+      ],
+      settings: DEFAULT_SETTINGS,
+      vaults: zeroVaults,
+      vaultTransactions: [],
+      shiftHandovers: [],
+    };
+
     try {
       const res = await request<{ success: boolean; message: string }>('/api/factory-reset', {
         method: 'POST',
       });
-      // Clear offline db & local custom settings
-      localStorage.removeItem(OFFLINE_DB_KEY);
-      localStorage.removeItem('cash_app_typography_settings');
-      localStorage.removeItem('cash_app_ui_zoom');
-      localStorage.removeItem('cash_app_custom_fonts');
-      return res;
-    } catch {
-      // Local fallback
-      const cleanSeed: LocalDB = {
-        users: DEFAULT_USERS,
-        cashLines: DEFAULT_FALLBACK_LINES,
-        transfers: [],
-        auditLogs: [
-          {
-            id: `aud_reset_${Date.now()}`,
-            timestamp: new Date().toISOString(),
-            operatorId: 'usr_admin',
-            operatorName: 'عادل فتحي',
-            action: 'إعادة ضبط المصنع (Factory Reset)',
-            details: 'تم مسح كافة البيانات والسجلات والعمليات وإعادة تشغيل النظام بحالة المصنع الأولى',
-            ipAddress: '127.0.0.1',
-          },
-        ],
-        settings: DEFAULT_SETTINGS,
-        vaults: [],
-        vaultTransactions: [],
-        shiftHandovers: [],
-      };
+      // Save pristine zeroed DB locally
       saveLocalDB(cleanSeed);
       localStorage.removeItem('cash_app_typography_settings');
       localStorage.removeItem('cash_app_ui_zoom');
       localStorage.removeItem('cash_app_custom_fonts');
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('app:balance-updated'));
+        window.dispatchEvent(new CustomEvent('app:global-refresh'));
+      }
+      return res;
+    } catch {
+      // Local fallback
+      saveLocalDB(cleanSeed);
+      localStorage.removeItem('cash_app_typography_settings');
+      localStorage.removeItem('cash_app_ui_zoom');
+      localStorage.removeItem('cash_app_custom_fonts');
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('app:balance-updated'));
+        window.dispatchEvent(new CustomEvent('app:global-refresh'));
+      }
       return {
         success: true,
-        message: 'تمت إعادة ضبط المصنع ومسح كافة البيانات والسجلات بنجاح',
+        message: 'تمت إعادة ضبط المصنع بنجاح، وتصفير كافة الأرصدة والخزن والخطوط (0.00 ج.م) ومسح جميع السجلات بالكامل',
       };
     }
   },

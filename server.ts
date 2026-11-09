@@ -2354,13 +2354,40 @@ async function startServer() {
     return res.json({ success: true, message: 'تمت استعادة البيانات بنجاح' });
   });
 
-  // 8.1. Factory Reset Endpoint
+  // 8.1. Factory Reset Endpoint (Full Zero Balances & Clean Slate)
   app.post('/api/factory-reset', authMiddleware, requireRole(['admin']), (req: Request, res: Response) => {
     const user = (req as any).user as User;
     const now = new Date().toISOString();
 
     const cleanSeed = getInitialSeed();
-    cleanSeed.transfers = []; // Completely clean transfers - zero operations as if brand new
+    cleanSeed.transfers = []; // 0 operations
+    cleanSeed.vaultTransactions = []; // 0 vault transactions
+    cleanSeed.shiftHandovers = []; // 0 handovers
+    cleanSeed.reconciliations = []; // 0 reconciliation records
+
+    // Zero out all cash lines balances
+    cleanSeed.cashLines.forEach((l) => {
+      l.balance = 0;
+      l.status = 'active';
+      l.isSynced = false;
+      l.syncedLiquidity = 0;
+      l.syncedDailyUsed = 0;
+      l.syncedMonthlyUsed = 0;
+      l.updatedAt = now;
+    });
+
+    // Zero out all vaults balances
+    cleanSeed.vaults.forEach((v) => {
+      v.balance = 0;
+      v.allocatedBalance = 0;
+      v.totalIn = 0;
+      v.totalOut = 0;
+      v.lastTransactionAmount = 0;
+      v.lastTransactionType = undefined;
+      v.lastTransactionAt = undefined;
+      v.updatedAt = now;
+    });
+
     cleanSeed.auditLogs = [
       {
         id: `aud_reset_${Date.now()}`,
@@ -2368,7 +2395,7 @@ async function startServer() {
         operatorId: user?.id || 'usr_admin',
         operatorName: user?.fullName || 'عادل فتحي',
         action: 'إعادة ضبط المصنع (Factory Reset)',
-        details: 'تم مسح كافة البيانات والسجلات والعمليات بالكامل وإعادة البرنامج إلى حالة المصنع الأولى',
+        details: 'تم تصفير كافة الأرصدة (رصيد البرنامج صفر، ورصيد جميع الخطوط والحسابات والخزن صفر) ومسح كامل لسجلات العمليات والتحويلات',
         ipAddress: req.ip,
       },
     ];
@@ -2378,7 +2405,7 @@ async function startServer() {
 
     return res.json({
       success: true,
-      message: 'تمت إعادة ضبط المصنع بنجاح، ومسح كافة العمليات والسجلات كما لو كان البرنامج يعمل لأول مرة',
+      message: 'تمت إعادة ضبط المصنع بنجاح، وتصفير كافة الأرصدة والخزن والخطوط (0.00 ج.م) ومسح جميع السجلات بالكامل',
       timestamp: now,
     });
   });

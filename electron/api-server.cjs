@@ -1037,4 +1037,57 @@ module.exports = function registerApiRoutes(app, dataDir) {
     saveDatabaseSync();
     res.json({ success: true, message: 'تم استعادة البيانات بنجاح' });
   });
+
+  app.post('/api/factory-reset', authMiddleware, (req, res) => {
+    const now = new Date().toISOString();
+    const cleanSeed = getInitialSeed();
+    cleanSeed.transfers = [];
+    cleanSeed.vaultTransactions = [];
+    cleanSeed.shiftHandovers = [];
+    cleanSeed.reconciliations = [];
+
+    // Zero out all line balances
+    cleanSeed.cashLines.forEach((l) => {
+      l.balance = 0;
+      l.status = 'active';
+      l.isSynced = false;
+      l.syncedLiquidity = 0;
+      l.syncedDailyUsed = 0;
+      l.syncedMonthlyUsed = 0;
+      l.updatedAt = now;
+    });
+
+    // Zero out all vault balances
+    cleanSeed.vaults.forEach((v) => {
+      v.balance = 0;
+      v.allocatedBalance = 0;
+      v.totalIn = 0;
+      v.totalOut = 0;
+      v.lastTransactionAmount = 0;
+      v.lastTransactionType = undefined;
+      v.lastTransactionAt = undefined;
+      v.updatedAt = now;
+    });
+
+    cleanSeed.auditLogs = [
+      {
+        id: `aud_reset_${Date.now()}`,
+        timestamp: now,
+        operatorId: req.user ? req.user.id : 'usr_admin',
+        operatorName: req.user ? req.user.fullName : 'عادل فتحي',
+        action: 'إعادة ضبط المصنع (Factory Reset)',
+        details: 'تم تصفير كافة الأرصدة (رصيد البرنامج صفر، ورصيد جميع الخطوط والحسابات والخزن صفر) ومسح كامل لسجلات العمليات والتحويلات',
+        ipAddress: '127.0.0.1',
+      },
+    ];
+
+    db = cleanSeed;
+    saveDatabaseSync();
+
+    return res.json({
+      success: true,
+      message: 'تمت إعادة ضبط المصنع بنجاح، وتصفير كافة الأرصدة والخزن والخطوط (0.00 ج.م) ومسح جميع السجلات بالكامل',
+      timestamp: now,
+    });
+  });
 };

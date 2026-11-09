@@ -309,18 +309,18 @@ export const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
                         <tr className="text-slate-400 border-b border-slate-800">
                           <th className="py-3 px-3.5 font-semibold">الرقم المرجعي</th>
                           <th className="py-3 px-3.5 font-semibold">التاريخ والوقت</th>
-                          <th className="py-3 px-3.5 font-semibold">نوع العملية</th>
+                          <th className="py-3 px-3.5 font-semibold text-center whitespace-nowrap">نوع العملية</th>
                           <th className="py-3 px-3.5 font-semibold">المرسل / الخط</th>
                           <th className="py-3 px-3.5 font-semibold">المستلم</th>
-                          <th className="py-3 px-3.5 font-semibold">المبلغ</th>
-                          <th className="py-3 px-3.5 font-semibold text-emerald-400">
-                            <div className="flex flex-col">
+                          <th className="py-3 px-3.5 font-semibold text-center whitespace-nowrap">المبلغ</th>
+                          <th className="py-3 px-3.5 font-semibold text-emerald-500 dark:text-emerald-400 text-center whitespace-nowrap">
+                            <div className="flex flex-col items-center justify-center">
                               <span>المتاح</span>
-                              <span className="text-[9px] text-emerald-500/80 font-normal">بعد التحويل</span>
+                              <span className="text-[9px] text-emerald-600 dark:text-emerald-500/80 font-normal">بعد التحويل</span>
                             </div>
                           </th>
-                          <th className="py-3 px-3.5 font-semibold">العمولة</th>
-                          <th className="py-3 px-3.5 font-semibold">الحالة</th>
+                          <th className="py-3 px-3.5 font-semibold text-center whitespace-nowrap">العمولة</th>
+                          <th className="py-3 px-3.5 font-semibold text-center whitespace-nowrap">الحالة</th>
                           <th className="py-3 px-3.5 font-semibold text-center">إجراءات</th>
                         </tr>
                       </thead>
@@ -333,13 +333,13 @@ export const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
                             <td className="py-3 px-3.5 text-slate-400 text-[11px] whitespace-nowrap">
                               {formatDateTime(tx.timestamp)}
                             </td>
-                            <td className="py-3 px-3.5 text-slate-300 whitespace-nowrap">
+                            <td className="py-3 px-3.5 text-center whitespace-nowrap">
                               {tx.transferType === 'receive_money' ? (
-                                <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/30 font-bold inline-block text-[10px]">
+                                <span className="px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-500 dark:text-blue-400 border border-blue-500/30 font-bold inline-block text-[10px] whitespace-nowrap tracking-tight">
                                   استلام وارد
                                 </span>
                               ) : (
-                                <span className="px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-bold inline-block text-[10px]">
+                                <span className="px-2 py-0.5 rounded-md bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 font-bold inline-block text-[10px] whitespace-nowrap tracking-tight">
                                   تحويل صادر
                                 </span>
                               )}
@@ -350,18 +350,18 @@ export const CardDetailsModal: React.FC<CardDetailsModalProps> = ({
                             <td className="py-3 px-3.5 text-slate-300 font-mono text-[11px] whitespace-nowrap">
                               {tx.recipientNumber}
                             </td>
-                            <td className={`py-3 px-3.5 font-mono font-bold whitespace-nowrap ${
-                              tx.transferType === 'receive_money' ? 'text-blue-400' : 'text-white'
+                            <td className={`py-3 px-3.5 font-mono font-bold text-center whitespace-nowrap ${
+                              tx.transferType === 'receive_money' ? 'text-blue-500 dark:text-blue-400' : 'text-slate-900 dark:text-white'
                             }`}>
                               {formatAmount(tx.amount)} ج.م
                             </td>
-                            <td className="py-3 px-3.5 font-mono font-bold text-emerald-400 whitespace-nowrap">
+                            <td className="py-3 px-3.5 font-mono font-bold text-emerald-600 dark:text-emerald-400 text-center whitespace-nowrap">
                               {tx.balanceAfter !== undefined && tx.balanceAfter !== null
                                 ? `${formatAmount(tx.balanceAfter)} ج.م`
                                 : '—'}
                             </td>
-                            <td className="py-3 px-3.5 font-mono text-amber-400 whitespace-nowrap">
-                              {tx.fee ? `${formatAmount(tx.fee)} ج.م` : '—'}
+                            <td className="py-3 px-3.5 font-mono font-bold text-red-600 dark:text-red-400 text-center whitespace-nowrap">
+                              {tx.fee ? `${formatAmount(tx.fee)} ج.م` : '0 ج.م'}
                             </td>
                             <td className="py-3 px-3.5 whitespace-nowrap">
                               {tx.status === 'completed' && (

@@ -270,17 +270,17 @@ export const TransfersLogView: React.FC<TransfersLogViewProps> = ({
               <tr className="bg-slate-950/80 text-slate-400 border-b border-slate-800">
                 <th className="py-3.5 px-4 font-semibold">الرقم المرجعي</th>
                 <th className="py-3.5 px-4 font-semibold">التاريخ والوقت</th>
-                <th className="py-3.5 px-4 font-semibold">نوع التحويل</th>
+                <th className="py-3.5 px-4 font-semibold text-center whitespace-nowrap">نوع التحويل</th>
                 <th className="py-3.5 px-4 font-semibold">الخط المرسل</th>
                 <th className="py-3.5 px-4 font-semibold">المستلم</th>
-                <th className="py-3.5 px-4 font-semibold">المبلغ (ج.م)</th>
-                <th className="py-3.5 px-4 font-semibold text-emerald-400">
-                  <div className="flex flex-col">
+                <th className="py-3.5 px-4 font-semibold text-center whitespace-nowrap">المبلغ (ج.م)</th>
+                <th className="py-3.5 px-4 font-semibold text-emerald-500 dark:text-emerald-400 text-center whitespace-nowrap">
+                  <div className="flex flex-col items-center justify-center">
                     <span>المتاح</span>
-                    <span className="text-[9px] text-emerald-500/80 font-normal">بعد التحويل</span>
+                    <span className="text-[9px] text-emerald-600 dark:text-emerald-500/80 font-normal">بعد التحويل</span>
                   </div>
                 </th>
-                <th className="py-3.5 px-4 font-semibold">الرسوم</th>
+                <th className="py-3.5 px-4 font-semibold text-center whitespace-nowrap">الرسوم</th>
                 <th className="py-3.5 px-4 font-semibold">الموظف</th>
                 <th className="py-3.5 px-4 font-semibold text-center">الحالة</th>
                 <th className="py-3.5 px-4 font-semibold text-center">الإجراءات</th>
@@ -309,12 +309,18 @@ export const TransfersLogView: React.FC<TransfersLogViewProps> = ({
                     <td className="py-3 px-4 text-slate-400 font-mono text-[11px] whitespace-nowrap">
                       {formatDateTime(tx.timestamp)}
                     </td>
-                    <td className="py-3 px-4 text-slate-300">
-                      {tx.transferType === 'cash_wallet' && 'محفظة كاش'}
-                      {tx.transferType === 'bank_transfer' && 'تحويل بنكي'}
-                      {tx.transferType === 'inter_line' && 'بين الخطوط'}
+                    <td className="py-3 px-4 text-center whitespace-nowrap">
+                      {tx.transferType === 'cash_wallet' && (
+                        <span className="text-slate-300 font-medium text-[11px] whitespace-nowrap">محفظة كاش</span>
+                      )}
+                      {tx.transferType === 'bank_transfer' && (
+                        <span className="text-slate-300 font-medium text-[11px] whitespace-nowrap">تحويل بنكي</span>
+                      )}
+                      {tx.transferType === 'inter_line' && (
+                        <span className="text-slate-300 font-medium text-[11px] whitespace-nowrap">بين الخطوط</span>
+                      )}
                       {tx.transferType === 'receive_money' && (
-                        <span className="px-2 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/30 font-bold inline-block text-[11px]">
+                        <span className="px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-500 dark:text-blue-400 border border-blue-500/30 font-bold inline-block text-[10px] whitespace-nowrap tracking-tight">
                           استلام وارد
                         </span>
                       )}
@@ -327,17 +333,17 @@ export const TransfersLogView: React.FC<TransfersLogViewProps> = ({
                       <div className="font-semibold text-slate-200">{tx.recipientName}</div>
                       <div className="text-[10px] font-mono text-cyan-400 font-bold">{tx.recipientNumber}</div>
                     </td>
-                    <td className={`py-3 px-4 font-mono font-bold text-sm whitespace-nowrap ${
-                      tx.transferType === 'receive_money' ? 'text-blue-400' : 'text-white'
+                    <td className={`py-3 px-4 font-mono font-bold text-sm text-center whitespace-nowrap ${
+                      tx.transferType === 'receive_money' ? 'text-blue-500 dark:text-blue-400' : 'text-slate-900 dark:text-white'
                     }`}>
                       {tx.transferType === 'receive_money' ? `+ ${formatAmount(tx.amount)}` : formatAmount(tx.amount)}
                     </td>
-                    <td className="py-3 px-4 font-mono font-bold text-sm text-emerald-400 whitespace-nowrap">
+                    <td className="py-3 px-4 font-mono font-bold text-sm text-emerald-600 dark:text-emerald-400 text-center whitespace-nowrap">
                       {tx.balanceAfter !== undefined && tx.balanceAfter !== null
                         ? formatAmount(tx.balanceAfter)
                         : '—'}
                     </td>
-                    <td className="py-3 px-4 font-mono text-amber-400 whitespace-nowrap">
+                    <td className="py-3 px-4 font-mono font-bold text-sm text-red-600 dark:text-red-400 text-center whitespace-nowrap">
                       {formatAmount(tx.fee)}
                     </td>
                     <td className="py-3 px-4 text-slate-300 whitespace-nowrap">

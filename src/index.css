@@ -574,5 +574,175 @@ html.dark .project-funds-currency {
   color: #6ee7b7 !important;
 }
 
+/* =========================================================================
+ * Enterprise World-Class Factory Reset Section & Modal (Light & Dark)
+ * ========================================================================= */
+.factory-reset-hero {
+  border-radius: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+html.light .factory-reset-hero,
+html:not(.dark) .factory-reset-hero,
+[data-theme="light"] .factory-reset-hero {
+  background: linear-gradient(180deg, #ffffff 0%, #fff5f5 100%) !important;
+  border: 1.5px solid #fecdd3 !important;
+  box-shadow: 0 10px 30px -5px rgba(225, 29, 72, 0.08), 0 4px 6px -2px rgba(0, 0, 0, 0.03) !important;
+}
+
+html.dark .factory-reset-hero,
+[data-theme="dark"] .factory-reset-hero {
+  background: linear-gradient(180deg, #0f172a 0%, #171c2d 50%, #201319 100%) !important;
+  border: 1.5px solid rgba(244, 63, 94, 0.35) !important;
+  box-shadow: 0 25px 50px -12px rgba(159, 18, 57, 0.35) !important;
+}
+
+/* Titles and Typography in Hero */
+html.light .factory-reset-title,
+html:not(.dark) .factory-reset-title,
+[data-theme="light"] .factory-reset-title {
+  color: #0f172a !important;
+}
+
+html.dark .factory-reset-title,
+[data-theme="dark"] .factory-reset-title {
+  color: #ffffff !important;
+}
+
+html.light .factory-reset-desc,
+html:not(.dark) .factory-reset-desc,
+[data-theme="light"] .factory-reset-desc {
+  color: #475569 !important;
+}
+
+html.dark .factory-reset-desc,
+[data-theme="dark"] .factory-reset-desc {
+  color: #cbd5e1 !important;
+}
+
+html.light .factory-reset-section-heading,
+html:not(.dark) .factory-reset-section-heading,
+[data-theme="light"] .factory-reset-section-heading {
+  color: #1e293b !important;
+}
+
+html.dark .factory-reset-section-heading,
+[data-theme="dark"] .factory-reset-section-heading {
+  color: #f1f5f9 !important;
+}
+
+/* 4 Pillar Cards */
+.factory-reset-pillar {
+  border-radius: 1rem;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+html.light .factory-reset-pillar,
+html:not(.dark) .factory-reset-pillar,
+[data-theme="light"] .factory-reset-pillar {
+  background-color: #ffffff !important;
+  border: 1.5px solid #e2e8f0 !important;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.05) !important;
+}
+
+html.light .factory-reset-pillar:hover,
+html:not(.dark) .factory-reset-pillar:hover,
+[data-theme="light"] .factory-reset-pillar:hover {
+  border-color: #fda4af !important;
+  box-shadow: 0 10px 15px -3px rgba(225, 29, 72, 0.08) !important;
+  transform: translateY(-2px);
+}
+
+html.dark .factory-reset-pillar,
+[data-theme="dark"] .factory-reset-pillar {
+  background-color: rgba(2, 6, 23, 0.85) !important;
+  border: 1.5px solid rgba(51, 65, 85, 0.7) !important;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3) !important;
+}
+
+html.dark .factory-reset-pillar:hover,
+[data-theme="dark"] .factory-reset-pillar:hover {
+  border-color: rgba(244, 63, 94, 0.5) !important;
+  box-shadow: 0 10px 20px -3px rgba(0, 0, 0, 0.5) !important;
+  transform: translateY(-2px);
+}
+
+html.light .factory-reset-pillar-title,
+html:not(.dark) .factory-reset-pillar-title,
+[data-theme="light"] .factory-reset-pillar-title {
+  color: #0f172a !important;
+}
+
+html.dark .factory-reset-pillar-title,
+[data-theme="dark"] .factory-reset-pillar-title {
+  color: #ffffff !important;
+}
+
+html.light .factory-reset-pillar-desc,
+html:not(.dark) .factory-reset-pillar-desc,
+[data-theme="light"] .factory-reset-pillar-desc {
+  color: #475569 !important;
+}
+
+html.dark .factory-reset-pillar-desc,
+[data-theme="dark"] .factory-reset-pillar-desc {
+  color: #94a3b8 !important;
+}
+
+/* Action Box */
+html.light .factory-reset-action-box,
+html:not(.dark) .factory-reset-action-box,
+[data-theme="light"] .factory-reset-action-box {
+  background: linear-gradient(135deg, #fff1f2 0%, #ffe4e6 100%) !important;
+  border: 1.5px solid #fda4af !important;
+  box-shadow: 0 4px 12px 0 rgba(225, 29, 72, 0.08) !important;
+}
+
+html.dark .factory-reset-action-box,
+[data-theme="dark"] .factory-reset-action-box {
+  background: linear-gradient(135deg, rgba(76, 5, 25, 0.5) 0%, rgba(15, 23, 42, 0.85) 100%) !important;
+  border: 1.5px solid rgba(244, 63, 94, 0.4) !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5) !important;
+}
+
+html.light .factory-reset-action-title,
+html:not(.dark) .factory-reset-action-title,
+[data-theme="light"] .factory-reset-action-title {
+  color: #881337 !important;
+}
+
+html.dark .factory-reset-action-title,
+[data-theme="dark"] .factory-reset-action-title {
+  color: #ffe4e6 !important;
+}
+
+html.light .factory-reset-action-sub,
+html:not(.dark) .factory-reset-action-sub,
+[data-theme="light"] .factory-reset-action-sub {
+  color: #9f1239 !important;
+}
+
+html.dark .factory-reset-action-sub,
+[data-theme="dark"] .factory-reset-action-sub {
+  color: #fda4af !important;
+}
+
+/* Modal Styling */
+html.light .factory-reset-modal,
+html:not(.dark) .factory-reset-modal,
+[data-theme="light"] .factory-reset-modal {
+  background-color: #ffffff !important;
+  border: 2px solid #fda4af !important;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25) !important;
+}
+
+html.dark .factory-reset-modal,
+[data-theme="dark"] .factory-reset-modal {
+  background-color: #0f172a !important;
+  border: 2px solid rgba(244, 63, 94, 0.4) !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8) !important;
+}
+
+
 
 
