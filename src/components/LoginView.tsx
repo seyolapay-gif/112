@@ -94,7 +94,7 @@ export const LoginView: React.FC = () => {
           </div>
           <div>
             <span className={`text-xs sm:text-sm font-extrabold block ${isDark ? 'text-white' : 'text-slate-900'}`}>نظام إدارة الكاش والمحافظ المصرية</span>
-            <span className={`text-[10px] font-medium block ${isDark ? 'text-emerald-400' : 'text-teal-700 font-bold'}`}>نسخة سطح المكتب الآمنة v1.0.0</span>
+            <span className={`text-[10px] font-medium block ${isDark ? 'text-emerald-400' : 'text-teal-700 font-bold'}`}>نسخة سطح المكتب الآمنة V 2.44</span>
           </div>
         </div>
         

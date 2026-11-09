@@ -2331,7 +2331,7 @@ async function startServer() {
   app.get('/api/backup', authMiddleware, requireRole(['admin']), (req: Request, res: Response) => {
     const backupData = {
       backupDate: new Date().toISOString(),
-      version: '1.0.0',
+      version: '2.44.0',
       data: db,
     };
     res.setHeader('Content-Disposition', `attachment; filename=transfers_backup_${Date.now()}.json`);

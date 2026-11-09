@@ -1365,7 +1365,7 @@ export const api = {
       const db = getLocalDB();
       return {
         backupDate: new Date().toISOString(),
-        version: '1.0.0',
+        version: '2.44.0',
         data: db,
       };
     }

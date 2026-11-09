@@ -218,10 +218,15 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           <div className="w-11 h-11 rounded-2xl bg-slate-800/80 border border-slate-700/60 flex items-center justify-center p-1 shadow-lg shadow-black/20 shrink-0">
             <img src="/logo.png" alt="Seolah" className="w-full h-full object-contain" />
           </div>
-          <div>
-            <h1 className="font-extrabold text-white text-base leading-tight">
-              إدارة التحويلات المالية
-            </h1>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center justify-between gap-1">
+              <h1 className="font-extrabold text-white text-sm sm:text-base leading-tight truncate">
+                إدارة التحويلات المالية
+              </h1>
+              <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
+                V 2.44
+              </span>
+            </div>
             <p className="text-[11px] text-slate-400 mt-0.5">
               تحويلات بنكية · محافظ · خطوط كاش
             </p>
@@ -261,6 +266,17 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             );
           })}
         </nav>
+
+        {/* Sidebar Footer Status & Version V 2.44 */}
+        <div className="p-3.5 border-t border-slate-800 flex items-center justify-between text-[11px] bg-slate-950/40">
+          <div className="flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+            <span className="text-slate-400 font-medium">النسخة الرسمية</span>
+          </div>
+          <span className="text-emerald-400 font-mono font-black text-xs px-2 py-0.5 rounded bg-slate-800 border border-slate-700">
+            V 2.44
+          </span>
+        </div>
       </aside>
 
       {/* Main Content Area - Full height with fixed header and scrollable body */}

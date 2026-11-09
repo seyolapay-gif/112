@@ -1116,7 +1116,7 @@ module.exports = function registerApiRoutes(app, dataDir) {
   app.get('/api/backup', authMiddleware, (req, res) => {
     res.json({
       exportedAt: new Date().toISOString(),
-      version: '1.0.0',
+      version: '2.44.0',
       data: db,
     });
   });

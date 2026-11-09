@@ -1,7 +1,7 @@
 ; Script generated for Inno Setup - Cash Management System Windows Installer
 #define MyAppName "نظام إدارة التحويلات الذكي"
 #define MyAppEnglishName "CashManagementSystem"
-#define MyAppVersion "1.0.0"
+#define MyAppVersion "2.44.0"
 #define MyAppPublisher "مؤسسة التيسير للخدمات المالية"
 #define MyAppExeName "CashManagementSystem.exe"
 
@@ -17,7 +17,7 @@ DefaultGroupName={#MyAppName}
 DisableDirPage=no
 DirExistsWarning=yes
 AlwaysShowDirOnReadyPage=yes
-OutputBaseFilename=CashManagementSystem_Setup_v1.0
+OutputBaseFilename=CashManagementSystem_Setup_v2.44
 Compression=lzma2/ultra64
 SolidCompression=yes
 WizardStyle=modern

@@ -873,11 +873,10 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
               </span>
             </div>
 
-            {/* Left Side (RTL): Version Label */}
-            <span className={`text-[9.5px] font-mono shrink-0 font-semibold ${
-              isDark ? 'text-slate-400' : 'text-slate-600'
+            <span className={`text-[10px] font-mono shrink-0 font-bold px-1.5 py-0.5 rounded ${
+              isDark ? 'text-emerald-400 bg-slate-800' : 'text-emerald-700 bg-emerald-50'
             }`}>
-              v 1.0.0
+              V 2.44
             </span>
           </div>
 
