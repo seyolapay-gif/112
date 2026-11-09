@@ -2551,6 +2551,125 @@ async function startServer() {
     return res.json(vault);
   });
 
+  // 9.4.1. Direct Capital / Balance Adjustment (Admin Only)
+  app.post('/api/vaults/:id/capital', authMiddleware, requireRole(['admin']), (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { newBalance, notes } = req.body;
+    const user = (req as any).user as User;
+
+    const parsedBalance = Number(newBalance);
+    if (isNaN(parsedBalance) || parsedBalance < 0) {
+      return res.status(400).json({ error: 'رأس المال / الرصيد الجديد يجب أن يكون رقماً صحيحاً أو صفراً أو أكبر' });
+    }
+
+    const vault = (db.vaults || []).find(v => v.id === id);
+    if (!vault) {
+      return res.status(404).json({ error: 'الخزنة غير موجودة' });
+    }
+
+    const now = new Date();
+    const datePrefix = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const prevBalance = vault.balance;
+    const diff = parsedBalance - prevBalance;
+
+    vault.balance = parsedBalance;
+    vault.lastTransactionAt = now.toISOString();
+    vault.lastTransactionType = 'capital_adjustment';
+    vault.lastTransactionAmount = Math.abs(diff);
+    vault.updatedAt = now.toISOString();
+
+    const vaultTx: VaultTransaction = {
+      id: `vtx_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      referenceNumber: `VTX-${datePrefix}-${Math.floor(1000 + Math.random() * 9000)}`,
+      timestamp: now.toISOString(),
+      type: 'adjustment',
+      targetVaultId: vault.id,
+      targetVaultName: vault.name,
+      amount: Math.abs(diff),
+      targetBalanceBefore: prevBalance,
+      targetBalanceAfter: vault.balance,
+      operatorId: user.id,
+      operatorName: user.fullName,
+      status: 'completed',
+      notes: notes || `تعديل مباشر لرأس المال من ${prevBalance.toLocaleString()} إلى ${parsedBalance.toLocaleString()} ${db.settings.currency}`,
+      createdAt: now.toISOString(),
+    };
+
+    if (!Array.isArray(db.vaultTransactions)) db.vaultTransactions = [];
+    db.vaultTransactions.unshift(vaultTx);
+
+    logAudit(
+      { id: user.id, fullName: user.fullName },
+      'تعديل رأس مال الخزينة',
+      `تم تعديل رصيد خزينة (${vault.name} - ${vault.code}) من ${prevBalance.toLocaleString()} إلى ${parsedBalance.toLocaleString()} ${db.settings.currency}. البيان: ${notes || 'تعديل إداري'}`
+    );
+    saveDatabaseAsync();
+
+    return res.status(200).json({ success: true, vault, transaction: vaultTx });
+  });
+
+  // 9.4.2. Sync Customer Operations Vault with all active cash lines liquidity
+  app.post('/api/vaults/sync-lines', authMiddleware, requireRole(['admin', 'operations']), (req: Request, res: Response) => {
+    const user = (req as any).user as User;
+    const customerVault = (db.vaults || []).find(v => v.type === 'customer');
+    if (!customerVault) {
+      return res.status(404).json({ error: 'خزينة عمليات العملاء غير موجودة' });
+    }
+
+    const totalLinesLiquidity = (db.cashLines || []).reduce((sum, l) => sum + (l.balance || 0), 0);
+    const prevBalance = customerVault.balance;
+    customerVault.balance = totalLinesLiquidity;
+    customerVault.lastTransactionAt = new Date().toISOString();
+    customerVault.lastTransactionType = 'lines_sync';
+    customerVault.lastTransactionAmount = Math.abs(totalLinesLiquidity - prevBalance);
+    customerVault.updatedAt = new Date().toISOString();
+
+    logAudit(
+      { id: user.id, fullName: user.fullName },
+      'مزامنة سيولة خطوط الكاش بالخزينة',
+      `تمت مزامنة رصيد خزينة عمليات العملاء مع إجمالي أرصدة خطوط الكاش (${totalLinesLiquidity.toLocaleString()} ${db.settings.currency}) عبر ${db.cashLines.length} خط`
+    );
+    saveDatabaseAsync();
+
+    return res.status(200).json({
+      success: true,
+      customerVault,
+      totalLinesLiquidity,
+      linesCount: (db.cashLines || []).length,
+    });
+  });
+
+  // 9.4.3. Delete Sub-Vault (Admin Only)
+  app.delete('/api/vaults/:id', authMiddleware, requireRole(['admin']), (req: Request, res: Response) => {
+    const { id } = req.params;
+    const user = (req as any).user as User;
+
+    const vault = (db.vaults || []).find(v => v.id === id);
+    if (!vault) {
+      return res.status(404).json({ error: 'الخزنة غير موجودة' });
+    }
+
+    if (vault.type === 'main' || vault.type === 'customer') {
+      return res.status(400).json({ error: 'لا يمكن حذف الخزنة المركزية الرئيسية أو خزينة عمليات العملاء' });
+    }
+
+    if (vault.balance > 0) {
+      return res.status(400).json({
+        error: `لا يمكن حذف الخزنة لوجود رصيد متبقي بها (${vault.balance.toLocaleString()} ${db.settings.currency}). يرجى تحويل الرصيد أولاً لخزنة أخرى.`
+      });
+    }
+
+    db.vaults = (db.vaults || []).filter(v => v.id !== id);
+    logAudit(
+      { id: user.id, fullName: user.fullName },
+      'حذف خزنة فرعية',
+      `تم حذف الخزنة الفرعية: ${vault.name} (${vault.code})`
+    );
+    saveDatabaseAsync();
+
+    return res.json({ success: true, message: `تم حذف الخزنة ${vault.name} بنجاح` });
+  });
+
   // 9.5. Deposit funds to Main Vault (Admin Only - Capital Injection)
   app.post('/api/vaults/:id/deposit', authMiddleware, requireRole(['admin']), (req: Request, res: Response) => {
     const { id } = req.params;

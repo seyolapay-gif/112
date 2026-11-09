@@ -788,6 +788,99 @@ module.exports = function registerApiRoutes(app, dataDir) {
     return res.json(vault);
   });
 
+  app.post('/api/vaults/:id/capital', authMiddleware, (req, res) => {
+    const { id } = req.params;
+    const { newBalance, notes } = req.body || {};
+    const parsedBalance = Number(newBalance);
+    if (isNaN(parsedBalance) || parsedBalance < 0) {
+      return res.status(400).json({ error: 'رأس المال / الرصيد الجديد يجب أن يكون رقماً صحيحاً أو صفراً أو أكبر' });
+    }
+
+    const vault = (db.vaults || []).find(v => v.id === id);
+    if (!vault) return res.status(404).json({ error: 'الخزنة غير موجودة' });
+
+    const now = new Date();
+    const datePrefix = now.toISOString().slice(0, 10).replace(/-/g, '');
+    const prevBalance = vault.balance;
+    const diff = parsedBalance - prevBalance;
+
+    vault.balance = parsedBalance;
+    vault.lastTransactionAt = now.toISOString();
+    vault.lastTransactionType = 'capital_adjustment';
+    vault.lastTransactionAmount = Math.abs(diff);
+    vault.updatedAt = now.toISOString();
+
+    const vaultTx = {
+      id: `vtx_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      referenceNumber: `VTX-${datePrefix}-${Math.floor(1000 + Math.random() * 9000)}`,
+      timestamp: now.toISOString(),
+      type: 'adjustment',
+      targetVaultId: vault.id,
+      targetVaultName: vault.name,
+      amount: Math.abs(diff),
+      targetBalanceBefore: prevBalance,
+      targetBalanceAfter: vault.balance,
+      operatorId: req.user.id,
+      operatorName: req.user.fullName,
+      status: 'completed',
+      notes: notes || `تعديل مباشر لرأس المال من ${prevBalance.toLocaleString()} إلى ${parsedBalance.toLocaleString()}`,
+      createdAt: now.toISOString(),
+    };
+
+    if (!Array.isArray(db.vaultTransactions)) db.vaultTransactions = [];
+    db.vaultTransactions.unshift(vaultTx);
+
+    logAudit(req.user, 'تعديل رأس مال الخزينة', `تم تعديل رصيد خزينة (${vault.name}) إلى ${parsedBalance.toLocaleString()}`);
+    saveDatabaseAsync();
+
+    return res.status(200).json({ success: true, vault, transaction: vaultTx });
+  });
+
+  app.post('/api/vaults/sync-lines', authMiddleware, (req, res) => {
+    const customerVault = (db.vaults || []).find(v => v.type === 'customer');
+    if (!customerVault) return res.status(404).json({ error: 'خزينة عمليات العملاء غير موجودة' });
+
+    const totalLinesLiquidity = (db.cashLines || []).reduce((sum, l) => sum + (l.balance || 0), 0);
+    const prevBalance = customerVault.balance;
+    customerVault.balance = totalLinesLiquidity;
+    customerVault.lastTransactionAt = new Date().toISOString();
+    customerVault.lastTransactionType = 'lines_sync';
+    customerVault.lastTransactionAmount = Math.abs(totalLinesLiquidity - prevBalance);
+    customerVault.updatedAt = new Date().toISOString();
+
+    logAudit(req.user, 'مزامنة سيولة خطوط الكاش بالخزينة', `تمت مزامنة رصيد خزينة العملاء مع إجمالي أرصدة خطوط الكاش (${totalLinesLiquidity.toLocaleString()})`);
+    saveDatabaseAsync();
+
+    return res.status(200).json({
+      success: true,
+      customerVault,
+      totalLinesLiquidity,
+      linesCount: (db.cashLines || []).length,
+    });
+  });
+
+  app.delete('/api/vaults/:id', authMiddleware, (req, res) => {
+    const { id } = req.params;
+    const vault = (db.vaults || []).find(v => v.id === id);
+    if (!vault) return res.status(404).json({ error: 'الخزنة غير موجودة' });
+
+    if (vault.type === 'main' || vault.type === 'customer') {
+      return res.status(400).json({ error: 'لا يمكن حذف الخزنة المركزية الرئيسية أو خزينة العمليات' });
+    }
+
+    if (vault.balance > 0) {
+      return res.status(400).json({
+        error: `لا يمكن حذف الخزنة لوجود رصيد متبقي بها (${vault.balance.toLocaleString()}). يرجى تحويل الرصيد أولاً.`
+      });
+    }
+
+    db.vaults = (db.vaults || []).filter(v => v.id !== id);
+    logAudit(req.user, 'حذف خزنة فرعية', `تم حذف الخزنة الفرعية: ${vault.name}`);
+    saveDatabaseAsync();
+
+    return res.json({ success: true, message: `تم حذف الخزنة ${vault.name} بنجاح` });
+  });
+
   app.post('/api/vaults/:id/deposit', authMiddleware, (req, res) => {
     const { id } = req.params;
     const { amount, notes } = req.body || {};

@@ -619,32 +619,32 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ initialTab = 'typogr
         </div>
       )}
 
-      {/* TAB 4: Factory Reset (إعادة ضبط المصنع وتصفير الحسابات الشاملة) */}
+      {/* TAB 4: Factory Reset (إعادة ضبط المصنع وتصفير الحسابات الشاملة - مدمجة لعرض كامل الشاشة بدون تمرير) */}
       {activeTab === 'reset' && (
-        <div className="space-y-6 animate-in fade-in duration-300">
-          <div className="factory-reset-hero relative overflow-hidden p-6 sm:p-9 space-y-7">
+        <div className="space-y-3 animate-in fade-in duration-200">
+          <div className="factory-reset-hero relative overflow-hidden p-4 sm:p-5 space-y-3.5">
             {/* Ambient Lighting Accents */}
-            <div className="absolute -top-24 -right-24 w-72 h-72 bg-rose-500/10 dark:bg-rose-600/15 rounded-full blur-3xl pointer-events-none" />
-            <div className="absolute -bottom-24 -left-24 w-72 h-72 bg-red-500/10 dark:bg-red-600/15 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -top-24 -right-24 w-60 h-60 bg-rose-500/10 dark:bg-rose-600/15 rounded-full blur-3xl pointer-events-none" />
+            <div className="absolute -bottom-24 -left-24 w-60 h-60 bg-red-500/10 dark:bg-red-600/15 rounded-full blur-3xl pointer-events-none" />
 
             {/* Reset Banner Header */}
-            <div className="relative z-10 flex flex-col lg:flex-row items-start lg:items-center justify-between gap-6 pb-6 border-b border-rose-200 dark:border-rose-500/25">
-              <div className="flex items-start sm:items-center gap-4 sm:gap-5">
-                <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-gradient-to-br from-rose-500/20 to-red-600/15 dark:from-rose-500/30 dark:to-red-600/20 text-rose-600 dark:text-rose-400 flex items-center justify-center border-2 border-rose-300 dark:border-rose-500/40 shadow-xl shadow-rose-500/10 dark:shadow-rose-950/60 shrink-0">
-                  <RotateCcw className="w-7 h-7 sm:w-8 sm:h-8 animate-pulse text-rose-600 dark:text-rose-400" />
+            <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-3 pb-3 border-b border-rose-200 dark:border-rose-500/20">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-rose-500/20 to-red-600/15 dark:from-rose-500/30 dark:to-red-600/20 text-rose-600 dark:text-rose-400 flex items-center justify-center border border-rose-300 dark:border-rose-500/40 shadow-md shrink-0">
+                  <RotateCcw className="w-5 h-5 sm:w-6 sm:h-6 animate-pulse text-rose-600 dark:text-rose-400" />
                 </div>
-                <div className="space-y-1.5">
-                  <div className="flex flex-wrap items-center gap-2.5">
-                    <h2 className="factory-reset-title text-xl sm:text-2xl font-black tracking-tight">
+                <div className="space-y-0.5">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="factory-reset-title text-base sm:text-lg font-black tracking-tight">
                       إعادة ضبط المصنع وتصفير الحسابات الشاملة
                     </h2>
-                    <span className="text-[11px] px-3 py-1 rounded-full bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 font-bold border border-rose-300 dark:border-rose-500/40 flex items-center gap-1.5 shadow-sm">
-                      <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping inline-block" />
+                    <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 font-bold border border-rose-300 dark:border-rose-500/40 flex items-center gap-1 shadow-xs">
+                      <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping inline-block" />
                       إجراء حاسم نهائي · تصفير الأرصدة
                     </span>
                   </div>
-                  <p className="factory-reset-desc text-xs sm:text-sm leading-relaxed max-w-3xl">
-                    مسح كافة البيانات والعمليات وتصفير رصيد البرنامج وجميع خطوط الكاش والمحافظ والخزن ليصبح كل رصيد <span className="font-black text-rose-600 dark:text-rose-400 text-sm">0.00 ج.م</span> كأن التطبيق يعمل لأول مرة تماماً.
+                  <p className="factory-reset-desc text-xs leading-normal max-w-2xl">
+                    مسح كافة البيانات والعمليات وتصفير رصيد البرنامج وجميع خطوط الكاش والمحافظ والخزن ليصبح كل رصيد <span className="font-black text-rose-600 dark:text-rose-400">0.00 ج.م</span> كأول تشغيل.
                   </p>
                 </div>
               </div>
@@ -653,107 +653,107 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ initialTab = 'typogr
                 type="button"
                 onClick={handleExportBackup}
                 disabled={isExporting}
-                className="px-5 py-3 bg-white hover:bg-slate-50 dark:bg-slate-800/90 dark:hover:bg-slate-750 text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white rounded-2xl text-xs font-bold border border-slate-300 dark:border-slate-700/80 hover:border-emerald-500/50 flex items-center gap-2.5 transition-all shadow-sm hover:shadow cursor-pointer shrink-0 self-stretch sm:self-auto justify-center"
+                className="px-3.5 py-2 bg-white hover:bg-slate-50 dark:bg-slate-800/90 dark:hover:bg-slate-750 text-slate-700 hover:text-slate-900 dark:text-slate-200 dark:hover:text-white rounded-xl text-xs font-bold border border-slate-300 dark:border-slate-700/80 hover:border-emerald-500/50 flex items-center gap-2 transition-all shadow-xs cursor-pointer shrink-0 self-stretch sm:self-auto justify-center"
               >
-                <Download className="w-4 h-4 text-emerald-500 dark:text-emerald-400" />
-                <span>حفظ نسخة احتياطية وقائية أولاً</span>
+                <Download className="w-3.5 h-3.5 text-emerald-500 dark:text-emerald-400" />
+                <span>حفظ نسخة احتياطية أولاً</span>
               </button>
             </div>
 
-            {/* What Happens 4 Pillars Grid */}
-            <div className="relative z-10 space-y-4">
+            {/* What Happens 4 Pillars Grid - Compact */}
+            <div className="relative z-10 space-y-2">
               <div className="flex items-center justify-between">
-                <h3 className="factory-reset-section-heading text-xs sm:text-sm font-bold uppercase tracking-wider flex items-center gap-2">
-                  <ShieldAlert className="w-4 h-4 text-rose-500 dark:text-rose-400" />
+                <h3 className="factory-reset-section-heading text-xs font-bold uppercase tracking-wider flex items-center gap-1.5">
+                  <ShieldAlert className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" />
                   <span>ما الذي سيحدث بدقة عند تنفيذ إعادة ضبط المصنع؟</span>
                 </h3>
-                <span className="text-[11px] text-slate-500 dark:text-slate-400 hidden sm:inline-block">تصفير شامل ونهائي لكافة البيانات</span>
+                <span className="text-[10.5px] text-slate-500 dark:text-slate-400 hidden sm:inline-block">تصفير شامل ونهائي</span>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                 
                 {/* Pillar 1: Full Zero Balances */}
-                <div className="factory-reset-pillar p-5 space-y-3">
+                <div className="factory-reset-pillar p-3 space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5 font-bold text-xs sm:text-sm">
-                      <div className="w-8 h-8 rounded-xl bg-rose-100 dark:bg-rose-500/15 flex items-center justify-center border border-rose-300 dark:border-rose-500/30">
-                        <Wallet className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+                    <div className="flex items-center gap-2 font-bold text-xs">
+                      <div className="w-6 h-6 rounded-lg bg-rose-100 dark:bg-rose-500/15 flex items-center justify-center border border-rose-300 dark:border-rose-500/30">
+                        <Wallet className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400" />
                       </div>
-                      <span className="factory-reset-pillar-title font-bold">تصفير شامل للأرصدة والحسابات</span>
+                      <span className="factory-reset-pillar-title font-bold text-xs">تصفير شامل للأرصدة والحسابات</span>
                     </div>
-                    <span className="text-[10px] font-black px-2.5 py-0.5 rounded-lg bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30 font-mono">
+                    <span className="text-[9.5px] font-black px-2 py-0.5 rounded bg-rose-100 dark:bg-rose-500/20 text-rose-700 dark:text-rose-300 border border-rose-300 dark:border-rose-500/30 font-mono">
                       0.00 ج.م
                     </span>
                   </div>
-                  <p className="factory-reset-pillar-desc text-xs leading-relaxed">
-                    تصفير كامل لكافة أرصدة خطوط الكاش والمحافظ الإلكترونية، والخزينة المركزية، والخزن الفرعية، وخزينة العمليات، ليكون رصيد البرنامج الإجمالي صفر ج.م تماماً.
+                  <p className="factory-reset-pillar-desc text-[11px] leading-relaxed">
+                    تصفير كامل لكافة أرصدة خطوط الكاش والمحافظ، والخزينة المركزية، والخزن الفرعية، وخزينة العمليات، ليكون رصيد البرنامج صفر ج.م تماماً.
                   </p>
                 </div>
 
                 {/* Pillar 2: 0 Operations */}
-                <div className="factory-reset-pillar p-5 space-y-3">
+                <div className="factory-reset-pillar p-3 space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5 font-bold text-xs sm:text-sm">
-                      <div className="w-8 h-8 rounded-xl bg-amber-100 dark:bg-amber-500/15 flex items-center justify-center border border-amber-300 dark:border-amber-500/30">
-                        <History className="w-4 h-4 text-amber-600 dark:text-amber-400" />
+                    <div className="flex items-center gap-2 font-bold text-xs">
+                      <div className="w-6 h-6 rounded-lg bg-amber-100 dark:bg-amber-500/15 flex items-center justify-center border border-amber-300 dark:border-amber-500/30">
+                        <History className="w-3.5 h-3.5 text-amber-600 dark:text-amber-400" />
                       </div>
-                      <span className="factory-reset-pillar-title font-bold">مسح شامل لسجلات العمليات والتحويلات</span>
+                      <span className="factory-reset-pillar-title font-bold text-xs">مسح شامل لسجلات العمليات</span>
                     </div>
-                    <span className="text-[10px] font-black px-2.5 py-0.5 rounded-lg bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 font-mono">
+                    <span className="text-[9.5px] font-black px-2 py-0.5 rounded bg-amber-100 dark:bg-amber-500/20 text-amber-700 dark:text-amber-300 border border-amber-300 dark:border-amber-500/30 font-mono">
                       0 عملية
                     </span>
                   </div>
-                  <p className="factory-reset-pillar-desc text-xs leading-relaxed">
-                    حذف كافة سجلات التحويلات البنكية ومحافظ الكاش وحركات اليوم والشهر ومحاضر النوبات لتصبح 0 عملية كأول تشغيل للنظام دون أي حركات سابقة.
+                  <p className="factory-reset-pillar-desc text-[11px] leading-relaxed">
+                    حذف كافة سجلات التحويلات البنكية ومحافظ الكاش وحركات اليوم والشهر ومحاضر النوبات لتصبح 0 عملية كأول تشغيل للنظام.
                   </p>
                 </div>
 
                 {/* Pillar 3: Clean Treasury & Handover Structure */}
-                <div className="factory-reset-pillar p-5 space-y-3">
+                <div className="factory-reset-pillar p-3 space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5 font-bold text-xs sm:text-sm">
-                      <div className="w-8 h-8 rounded-xl bg-cyan-100 dark:bg-cyan-500/15 flex items-center justify-center border border-cyan-300 dark:border-cyan-500/30">
-                        <Building2 className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
+                    <div className="flex items-center gap-2 font-bold text-xs">
+                      <div className="w-6 h-6 rounded-lg bg-cyan-100 dark:bg-cyan-500/15 flex items-center justify-center border border-cyan-300 dark:border-cyan-500/30">
+                        <Building2 className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                       </div>
-                      <span className="factory-reset-pillar-title font-bold">إعادة تهيئة الخزائن ومحاضر التسليم</span>
+                      <span className="factory-reset-pillar-title font-bold text-xs">إعادة تهيئة الخزائن والتسليم</span>
                     </div>
-                    <span className="text-[10px] font-black px-2.5 py-0.5 rounded-lg bg-cyan-100 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-500/30 font-mono">
+                    <span className="text-[9.5px] font-black px-2 py-0.5 rounded bg-cyan-100 dark:bg-cyan-500/20 text-cyan-700 dark:text-cyan-300 border border-cyan-300 dark:border-cyan-500/30 font-mono">
                       تصفير الخزن
                     </span>
                   </div>
-                  <p className="factory-reset-pillar-desc text-xs leading-relaxed">
-                    إعادة ضبط هيكل الخزن والخطوط بدون أي مبالغ مسجلة، وتصفير استهلاك الحدود اليومية والشهرية، ومسح مطابقات العمليات الورقية القديمة.
+                  <p className="factory-reset-pillar-desc text-[11px] leading-relaxed">
+                    إعادة ضبط هيكل الخزن والخطوط بدون مبالغ مسجلة، وتصفير استهلاك الحدود اليومية والشهرية، ومسح مطابقات العمليات القديمة.
                   </p>
                 </div>
 
                 {/* Pillar 4: Fresh Audit & Pristine Theme */}
-                <div className="factory-reset-pillar p-5 space-y-3">
+                <div className="factory-reset-pillar p-3 space-y-1.5">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2.5 font-bold text-xs sm:text-sm">
-                      <div className="w-8 h-8 rounded-xl bg-emerald-100 dark:bg-emerald-500/15 flex items-center justify-center border border-emerald-300 dark:border-emerald-500/30">
-                        <ShieldCheck className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <div className="flex items-center gap-2 font-bold text-xs">
+                      <div className="w-6 h-6 rounded-lg bg-emerald-100 dark:bg-emerald-500/15 flex items-center justify-center border border-emerald-300 dark:border-emerald-500/30">
+                        <ShieldCheck className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                       </div>
-                      <span className="factory-reset-pillar-title font-bold">سجل تدقيق نظيف وإعدادات قياسية</span>
+                      <span className="factory-reset-pillar-title font-bold text-xs">سجل تدقيق نظيف وإعدادات قياسية</span>
                     </div>
-                    <span className="text-[10px] font-black px-2.5 py-0.5 rounded-lg bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 font-mono">
+                    <span className="text-[9.5px] font-black px-2 py-0.5 rounded bg-emerald-100 dark:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-500/30 font-mono">
                       بداية نظيفة
                     </span>
                   </div>
-                  <p className="factory-reset-pillar-desc text-xs leading-relaxed">
-                    بدء أرشيف رقابة Audit Logs جديد يبدأ بتوثيق إجراء ضبط المصنع، مع إرجاع إعدادات الخطوط والمظهر لنسبة 100% القياسية مع الاحتفاظ بحساب المسؤول للدخول.
+                  <p className="factory-reset-pillar-desc text-[11px] leading-relaxed">
+                    بدء أرشيف رقابة جديد يوثق إجراء ضبط المصنع، مع إرجاع إعدادات المظهر للوضع القياسي مع الاحتفاظ بحساب المسؤول.
                   </p>
                 </div>
 
               </div>
             </div>
 
-            {/* Primary Action Button Bar */}
-            <div className="factory-reset-action-box relative z-10 p-5 sm:p-6 rounded-2xl flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5">
-              <div className="space-y-1">
-                <span className="factory-reset-action-title text-sm sm:text-base font-black block">
+            {/* Primary Action Button Bar - Compact & Directly Visible */}
+            <div className="factory-reset-action-box relative z-10 p-3 sm:p-3.5 rounded-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+              <div className="space-y-0.5">
+                <span className="factory-reset-action-title text-xs sm:text-sm font-black block">
                   هل أنت جاهز لتصفير البرنامج وإعادة ضبط المصنع الآن؟
                 </span>
-                <p className="factory-reset-action-sub text-xs leading-relaxed">
+                <p className="factory-reset-action-sub text-[10.5px] sm:text-[11px] leading-normal">
                   تأكيد فوري مباشر: عند الضغط أدناه ستظهر نافذة التأكيد للموافقة بنقرة واحدة مباشرة، دون الحاجة لكتابة أي كلمات.
                 </p>
               </div>
@@ -764,9 +764,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ initialTab = 'typogr
                   setShowResetModal(true);
                 }}
                 disabled={!canManageSettings}
-                className="w-full lg:w-auto px-8 py-4 bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 text-white font-black rounded-2xl text-xs sm:text-sm flex items-center justify-center gap-3 shadow-xl shadow-rose-600/30 hover:shadow-rose-600/50 transition-all cursor-pointer shrink-0 active:scale-98 border border-rose-400/30"
+                className="w-full sm:w-auto px-5 py-2.5 bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 text-white font-black rounded-xl text-xs sm:text-sm flex items-center justify-center gap-2 shadow-lg shadow-rose-600/25 hover:shadow-rose-600/40 transition-all cursor-pointer shrink-0 active:scale-98 border border-rose-400/30"
               >
-                <Trash2 className="w-5 h-5 text-white" />
+                <Trash2 className="w-4 h-4 text-white" />
                 <span>إعادة ضبط المصنع وتصفير الحسابات الآن</span>
               </button>
             </div>
@@ -884,24 +884,24 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ initialTab = 'typogr
         </div>
       )}
 
-      {/* Confirmation Modal for Factory Reset (One-Click Approval - No Typing Required) */}
+      {/* Confirmation Modal for Factory Reset (One-Click Approval - Compact Version) */}
       {showResetModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 dark:bg-slate-950/85 backdrop-blur-md animate-in fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/75 dark:bg-slate-950/85 backdrop-blur-md animate-in fade-in">
           <div 
-            className="factory-reset-modal w-full max-w-lg rounded-3xl p-6 sm:p-8 space-y-6"
+            className="factory-reset-modal w-full max-w-sm sm:max-w-md rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-2xl"
             dir="rtl"
           >
-            {/* Modal Header */}
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-center gap-3.5">
-                <div className="w-13 h-13 rounded-2xl bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center border-2 border-rose-300 dark:border-rose-500/40 shrink-0 shadow-lg shadow-rose-500/10 dark:shadow-rose-950/50">
-                  <AlertTriangle className="w-7 h-7 text-rose-600 dark:text-rose-400" />
+            {/* Modal Header - Compact */}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-10 h-10 rounded-xl bg-rose-100 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 flex items-center justify-center border border-rose-300 dark:border-rose-500/40 shrink-0 shadow-sm">
+                  <AlertTriangle className="w-5 h-5 text-rose-600 dark:text-rose-400" />
                 </div>
                 <div>
-                  <h3 className="factory-reset-title text-lg sm:text-xl font-black">
+                  <h3 className="factory-reset-title text-base sm:text-lg font-black leading-tight">
                     تأكيد تصفير الحسابات وضبط المصنع
                   </h3>
-                  <p className="text-xs text-rose-600 dark:text-rose-300 font-medium mt-0.5">
+                  <p className="text-[11px] text-rose-600 dark:text-rose-300 font-medium mt-0.5">
                     موافقة فورية بنقرة واحدة لتصفير كافة الأرصدة ومسح السجلات
                   </p>
                 </div>
@@ -915,82 +915,82 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ initialTab = 'typogr
                   }
                 }}
                 disabled={isResetting}
-                className="w-8 h-8 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white flex items-center justify-center transition cursor-pointer"
+                className="w-7 h-7 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white flex items-center justify-center transition cursor-pointer"
                 title="إغلاق النافذة"
               >
                 <X className="w-4 h-4" />
               </button>
             </div>
 
-            {/* Live Zero Preview Box */}
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/90 border border-slate-200 dark:border-rose-500/30 space-y-3">
-              <div className="flex items-center justify-between text-xs pb-2 border-b border-slate-200 dark:border-slate-800/80">
+            {/* Live Zero Preview Box - Compact */}
+            <div className="p-2.5 sm:p-3 rounded-xl bg-slate-50 dark:bg-slate-950/90 border border-slate-200 dark:border-rose-500/30 space-y-2">
+              <div className="flex items-center justify-between text-[11px] pb-1.5 border-b border-slate-200 dark:border-slate-800/80">
                 <span className="font-bold text-rose-600 dark:text-rose-300">الحالة بعد الموافقة والتنفيذ:</span>
                 <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 font-bold">تصفير بنسبة 100%</span>
               </div>
               
-              <div className="grid grid-cols-2 gap-2.5 text-xs">
-                <div className="p-3 rounded-xl bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800/80 flex flex-col shadow-xs">
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">رصيد البرنامج الإجمالي:</span>
-                  <span className="text-sm font-black text-rose-600 dark:text-rose-400 font-mono mt-0.5">0.00 ج.م</span>
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="p-2 rounded-lg bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800/80 flex flex-col shadow-xs">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">رصيد البرنامج الإجمالي:</span>
+                  <span className="text-xs sm:text-sm font-black text-rose-600 dark:text-rose-400 font-mono mt-0.5">0.00 ج.م</span>
                 </div>
-                <div className="p-3 rounded-xl bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800/80 flex flex-col shadow-xs">
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">أرصدة خطوط الكاش:</span>
-                  <span className="text-sm font-black text-rose-600 dark:text-rose-400 font-mono mt-0.5">0.00 ج.م</span>
+                <div className="p-2 rounded-lg bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800/80 flex flex-col shadow-xs">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">أرصدة خطوط الكاش:</span>
+                  <span className="text-xs sm:text-sm font-black text-rose-600 dark:text-rose-400 font-mono mt-0.5">0.00 ج.م</span>
                 </div>
-                <div className="p-3 rounded-xl bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800/80 flex flex-col shadow-xs">
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">أرصدة الخزن المركزية والفرعية:</span>
-                  <span className="text-sm font-black text-rose-600 dark:text-rose-400 font-mono mt-0.5">0.00 ج.م</span>
+                <div className="p-2 rounded-lg bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800/80 flex flex-col shadow-xs">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">أرصدة الخزن المركزية والفرعية:</span>
+                  <span className="text-xs sm:text-sm font-black text-rose-600 dark:text-rose-400 font-mono mt-0.5">0.00 ج.م</span>
                 </div>
-                <div className="p-3 rounded-xl bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800/80 flex flex-col shadow-xs">
-                  <span className="text-[11px] text-slate-500 dark:text-slate-400">سجل العمليات والتحويلات:</span>
-                  <span className="text-sm font-black text-rose-600 dark:text-rose-400 font-mono mt-0.5">0 عملية</span>
+                <div className="p-2 rounded-lg bg-white dark:bg-slate-900/80 border border-slate-200/90 dark:border-slate-800/80 flex flex-col shadow-xs">
+                  <span className="text-[10px] text-slate-500 dark:text-slate-400">سجل العمليات والتحويلات:</span>
+                  <span className="text-xs sm:text-sm font-black text-rose-600 dark:text-rose-400 font-mono mt-0.5">0 عملية</span>
                 </div>
               </div>
             </div>
 
-            {/* Warning Message Box */}
-            <div className="p-4 rounded-2xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-500/30 text-xs text-rose-900 dark:text-rose-200 leading-relaxed space-y-2">
-              <p className="font-bold text-rose-950 dark:text-rose-100 flex items-center gap-2">
-                <ShieldAlert className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+            {/* Warning Message Box - Compact */}
+            <div className="p-2.5 sm:p-3 rounded-xl bg-rose-50 dark:bg-rose-950/40 border border-rose-200 dark:border-rose-500/30 text-[11px] text-rose-900 dark:text-rose-200 leading-normal space-y-1">
+              <p className="font-bold text-rose-950 dark:text-rose-100 flex items-center gap-1.5">
+                <ShieldAlert className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
                 <span>تنبيه نهائي: هل توافق على مسح كافة السجلات وتصفير الحسابات؟</span>
               </p>
-              <p className="text-[11px] text-rose-800 dark:text-rose-300/80 leading-relaxed pr-6">
+              <p className="text-[10.5px] text-rose-800 dark:text-rose-300/80 leading-relaxed pr-5">
                 بمجرد الضغط على زر الموافقة أدناه سيتم تصفير كافة الأرصدة ومسح جميع حركات التحويل فوراً والبدء من الصفر. لا يمكن التراجع إلا باستيراد نسخة احتياطية.
               </p>
             </div>
 
-            {/* Quick Safety Step: Backup Download */}
-            <div className="flex items-center justify-between p-3.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-xs">
-              <span className="text-slate-500 dark:text-slate-400 text-[11px]">لحمايتك، هل ترغب بحفظ نسخة احتياطية أولاً؟</span>
+            {/* Quick Safety Step: Backup Download - Compact */}
+            <div className="flex items-center justify-between p-2.5 bg-slate-50 dark:bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 text-[11px]">
+              <span className="text-slate-500 dark:text-slate-400 text-[10.5px]">لحمايتك، هل ترغب بحفظ نسخة احتياطية أولاً؟</span>
               <button
                 type="button"
                 onClick={handleExportBackup}
                 disabled={isExporting || isResetting}
-                className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 font-bold flex items-center gap-1.5 transition cursor-pointer"
+                className="text-emerald-600 dark:text-emerald-400 hover:text-emerald-500 dark:hover:text-emerald-300 font-bold flex items-center gap-1 transition cursor-pointer text-[10.5px]"
               >
-                <Download className="w-3.5 h-3.5" />
+                <Download className="w-3 h-3" />
                 <span>حفظ نسخة احتياطية (اختياري)</span>
               </button>
             </div>
 
             {/* Success message inside modal if done */}
             {resetSuccessMessage && (
-              <div className="p-4 rounded-2xl bg-emerald-50 dark:bg-emerald-950/90 border-2 border-emerald-500 flex items-center gap-3 text-emerald-800 dark:text-emerald-200 text-xs shadow-lg animate-in fade-in">
-                <CheckCircle2 className="w-6 h-6 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <span className="font-bold text-sm">{resetSuccessMessage} جاري تحديث البرنامج...</span>
+              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/90 border border-emerald-500 flex items-center gap-2.5 text-emerald-800 dark:text-emerald-200 text-xs shadow-md animate-in fade-in">
+                <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <span className="font-bold text-xs">{resetSuccessMessage} جاري تحديث البرنامج...</span>
               </div>
             )}
 
-            {/* Modal Actions - Instant One-Click Approval */}
-            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-3 pt-2">
+            {/* Modal Actions - Compact One-Click Approval */}
+            <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center justify-end gap-2 pt-1">
               <button
                 type="button"
                 onClick={() => {
                   setShowResetModal(false);
                 }}
                 disabled={isResetting}
-                className="px-5 py-3 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white font-bold rounded-xl text-xs transition cursor-pointer text-center"
+                className="px-4 py-2 bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-750 text-slate-700 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white font-bold rounded-xl text-xs transition cursor-pointer text-center"
               >
                 إلغاء وتراجع
               </button>
@@ -999,12 +999,12 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ initialTab = 'typogr
                 type="button"
                 onClick={handleExecuteFactoryReset}
                 disabled={isResetting}
-                className="px-6 py-3.5 rounded-xl text-xs font-black flex items-center justify-center gap-2.5 transition cursor-pointer bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 text-white shadow-xl shadow-rose-600/30 hover:shadow-rose-600/50 border border-rose-400/40 active:scale-98 disabled:opacity-50"
+                className="px-5 py-2.5 rounded-xl text-xs font-black flex items-center justify-center gap-2 transition cursor-pointer bg-gradient-to-r from-red-600 via-rose-600 to-red-600 hover:from-red-500 hover:to-rose-500 text-white shadow-md shadow-rose-600/30 hover:shadow-rose-600/50 border border-rose-400/40 active:scale-98 disabled:opacity-50"
               >
                 {isResetting ? (
                   <>
-                    <RefreshCw className="w-4 h-4 animate-spin text-white" />
-                    <span className="text-white">جاري تصفير الحسابات ومسح السجلات...</span>
+                    <RefreshCw className="w-3.5 h-3.5 animate-spin text-white" />
+                    <span className="text-white text-xs">جاري تصفير الحسابات ومسح السجلات...</span>
                   </>
                 ) : (
                   <>

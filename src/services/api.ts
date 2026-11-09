@@ -1831,6 +1831,129 @@ export const api = {
     }
   },
 
+  async adjustVaultCapital(
+    id: string,
+    newBalance: number,
+    notes?: string
+  ): Promise<{ success: boolean; vault: Vault; transaction?: VaultTransaction }> {
+    try {
+      const res = await request<{ success: boolean; vault: Vault; transaction?: VaultTransaction }>(`/api/vaults/${id}/capital`, {
+        method: 'POST',
+        body: JSON.stringify({ newBalance, notes }),
+      });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('app:balance-updated'));
+        window.dispatchEvent(new CustomEvent('app:global-refresh'));
+      }
+      return res;
+    } catch {
+      const db = getLocalDB();
+      const vault = (db.vaults || []).find(v => v.id === id);
+      if (!vault) throw new Error('الخزنة غير موجودة');
+
+      const prev = vault.balance;
+      const parsed = Number(newBalance);
+      vault.balance = parsed;
+      vault.lastTransactionAmount = Math.abs(parsed - prev);
+      vault.lastTransactionType = 'capital_adjustment';
+      vault.lastTransactionAt = new Date().toISOString();
+      vault.updatedAt = new Date().toISOString();
+
+      const tx: VaultTransaction = {
+        id: `vtx_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        referenceNumber: `VTX-${Date.now().toString().slice(-8)}`,
+        timestamp: new Date().toISOString(),
+        type: 'adjustment',
+        targetVaultId: vault.id,
+        targetVaultName: vault.name,
+        amount: Math.abs(parsed - prev),
+        targetBalanceBefore: prev,
+        targetBalanceAfter: vault.balance,
+        operatorId: 'usr_admin',
+        operatorName: 'المدير العام',
+        status: 'completed',
+        notes: notes || `تعديل مباشر لرأس المال من ${prev.toLocaleString()} إلى ${parsed.toLocaleString()}`,
+        createdAt: new Date().toISOString(),
+      };
+
+      if (!Array.isArray(db.vaultTransactions)) db.vaultTransactions = [];
+      db.vaultTransactions.unshift(tx);
+      saveLocalDB(db);
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('app:balance-updated'));
+        window.dispatchEvent(new CustomEvent('app:global-refresh'));
+      }
+      return { success: true, vault, transaction: tx };
+    }
+  },
+
+  async syncLinesWithCustomerVault(): Promise<{
+    success: boolean;
+    customerVault: Vault;
+    totalLinesLiquidity: number;
+    linesCount: number;
+  }> {
+    try {
+      const res = await request<any>('/api/vaults/sync-lines', { method: 'POST' });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('app:balance-updated'));
+        window.dispatchEvent(new CustomEvent('app:global-refresh'));
+      }
+      return res;
+    } catch {
+      const db = getLocalDB();
+      const customerVault = (db.vaults || []).find(v => v.type === 'customer');
+      if (!customerVault) throw new Error('خزينة عمليات العملاء غير موجودة');
+
+      const totalLinesLiquidity = (db.cashLines || []).reduce((sum, l) => sum + (l.balance || 0), 0);
+      const prev = customerVault.balance;
+      customerVault.balance = totalLinesLiquidity;
+      customerVault.lastTransactionAmount = Math.abs(totalLinesLiquidity - prev);
+      customerVault.lastTransactionType = 'lines_sync';
+      customerVault.lastTransactionAt = new Date().toISOString();
+      customerVault.updatedAt = new Date().toISOString();
+      saveLocalDB(db);
+
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('app:balance-updated'));
+        window.dispatchEvent(new CustomEvent('app:global-refresh'));
+      }
+      return {
+        success: true,
+        customerVault,
+        totalLinesLiquidity,
+        linesCount: (db.cashLines || []).length,
+      };
+    }
+  },
+
+  async deleteVault(id: string): Promise<{ success: boolean; message: string }> {
+    try {
+      const res = await request<any>(`/api/vaults/${id}`, { method: 'DELETE' });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('app:balance-updated'));
+      }
+      return res;
+    } catch {
+      const db = getLocalDB();
+      const vault = (db.vaults || []).find(v => v.id === id);
+      if (!vault) throw new Error('الخزنة غير موجودة');
+      if (vault.type === 'main' || vault.type === 'customer') {
+        throw new Error('لا يمكن حذف الخزنة المركزية الرئيسية أو خزينة العمليات');
+      }
+      if (vault.balance > 0) {
+        throw new Error(`لا يمكن حذف الخزنة لوجود رصيد بها (${vault.balance.toLocaleString()})`);
+      }
+      db.vaults = (db.vaults || []).filter(v => v.id !== id);
+      saveLocalDB(db);
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('app:balance-updated'));
+      }
+      return { success: true, message: `تم حذف الخزنة ${vault.name} بنجاح` };
+    }
+  },
+
   async depositToMainVault(
     id: string,
     amount: number,
