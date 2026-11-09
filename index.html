@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <script>
+      (function() {
+        // Suppress harmless Vite HMR WebSocket connection closed errors in sandbox proxy
+        window.addEventListener('error', function(event) {
+          var msg = event && (event.message || (event.error && event.error.message) || '');
+          if (typeof msg === 'string' && (msg.indexOf('WebSocket') !== -1 || msg.indexOf('@vite/client') !== -1)) {
+            event.stopImmediatePropagation();
+            event.preventDefault();
+            return true;
+          }
+        }, true);
+        window.addEventListener('unhandledrejection', function(event) {
+          var reason = event && event.reason;
+          var msg = (reason && (reason.message || reason)) || '';
+          if (typeof msg === 'string' && msg.indexOf('WebSocket') !== -1) {
+            event.stopImmediatePropagation();
+            event.preventDefault();
+          }
+        }, true);
+      })();
+    </script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Seolah إدارة التحويلات المالية الذكية</title>
+    <link rel="icon" type="image/png" href="/logo.png" />
+    <link rel="apple-touch-icon" href="/logo.png" />
+    <meta name="description" content="نظام احترافي متكامل لإدارة التحويلات البنكية والمحافظ الالكترونية" />
+    <meta property="og:title" content="Seolah إدارة التحويلات المالية الذكية" />
+    <meta property="og:description" content="نظام احترافي متكامل لإدارة التحويلات البنكية والمحافظ الالكترونية" />
+    <meta property="og:image" content="/logo.png" />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="/logo.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;500;600;700;800&family=Almarai:wght@300;400;700;800&family=Amiri:wght@400;700&family=Cairo:wght@300;400;500;600;700;800;900&family=Changa:wght@300;400;500;600;700;800&family=IBM+Plex+Sans+Arabic:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+Arabic:wght@300;400;500;600;700;800&family=Readex+Pro:wght@300;400;500;600;700&family=Tajawal:wght@300;400;500;700;800;900&display=swap" rel="stylesheet">
+    <script>
+      (function() {
+        try {
+          var raw = localStorage.getItem('cash_app_typography_settings');
+          if (raw) {
+            var s = JSON.parse(raw);
+            var root = document.documentElement;
+            if (s.fontSizeScale) root.style.setProperty('--app-font-scale-num', s.fontSizeScale);
+            if (s.fontWeightBase) root.style.setProperty('--app-font-weight-base', s.fontWeightBase);
+            if (s.fontWeightBold) root.style.setProperty('--app-font-weight-bold', s.fontWeightBold);
+            if (s.lineHeight) root.style.setProperty('--app-line-height', s.lineHeight);
+            if (s.letterSpacing !== undefined) root.style.setProperty('--app-letter-spacing', s.letterSpacing + 'px');
+            if (s.wordSpacing !== undefined) root.style.setProperty('--app-word-spacing', s.wordSpacing + 'px');
+            if (s.fontType === 'preset' && s.presetFontId) {
+              var map = {
+                'cairo': "'Cairo', sans-serif",
+                'tajawal': "'Tajawal', sans-serif",
+                'almarai': "'Almarai', sans-serif",
+                'ibm-plex': "'IBM Plex Sans Arabic', sans-serif",
+                'alexandria': "'Alexandria', sans-serif",
+                'readex': "'Readex Pro', sans-serif",
+                'noto': "'Noto Sans Arabic', sans-serif",
+                'changa': "'Changa', sans-serif",
+                'amiri': "'Amiri', serif",
+                'system': "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+              };
+              if (map[s.presetFontId]) {
+                root.style.setProperty('--app-font-family', map[s.presetFontId]);
+              }
+            } else if (s.fontType === 'system') {
+              root.style.setProperty('--app-font-family', "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif");
+            }
+          }
+        } catch(e) {}
+      })();
+    </script>
+  </head>
+  <body class="bg-slate-900 text-slate-100 font-sans antialiased selection:bg-emerald-500 selection:text-white">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
