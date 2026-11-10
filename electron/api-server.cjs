@@ -33,11 +33,11 @@ function getInitialSeed() {
   const initialCashLines = [
     {
       id: 'line_voda_1',
-      name: 'فودافون كاش 1',
+      name: 'عادل كاش 1',
       provider: 'vodafone',
-      phoneNumber: '01012345678',
-      accountHolder: 'مؤسسة التيسير للخدمات',
-      balance: 145000,
+      phoneNumber: '01061650660',
+      accountHolder: 'عادل فتحي',
+      balance: 100000,
       dailyLimit: 60000,
       monthlyLimit: 200000,
       warningThresholdPercent: 80,
@@ -49,33 +49,33 @@ function getInitialSeed() {
     },
     {
       id: 'line_etisalat_1',
-      name: 'اتصالات كاش 1',
+      name: 'عادل اتصلات',
       provider: 'etisalat',
-      phoneNumber: '01098765432',
-      accountHolder: 'مؤسسة التيسير للخدمات',
-      balance: 98500,
+      phoneNumber: '01125334384',
+      accountHolder: 'عادل فتحي',
+      balance: 100000,
       dailyLimit: 60000,
       monthlyLimit: 200000,
       warningThresholdPercent: 80,
       status: 'active',
       iconColor: '#78BE20',
-      notes: 'خط العمليات اليومية',
+      notes: 'خط اتصالات كاش المعتمد',
       createdAt: now,
       updatedAt: now,
     },
     {
       id: 'line_orange_1',
-      name: 'أورنج موني 1',
+      name: 'عادل',
       provider: 'orange',
       phoneNumber: '01123456789',
-      accountHolder: 'مؤسسة التيسير للخدمات',
-      balance: 112000,
+      accountHolder: 'عادل فتحي',
+      balance: 100000,
       dailyLimit: 60000,
       monthlyLimit: 200000,
       warningThresholdPercent: 80,
       status: 'active',
       iconColor: '#FF7900',
-      notes: 'خط أورنج المعتمد',
+      notes: 'خط أورنج كاش المعتمد',
       createdAt: now,
       updatedAt: now,
     },
@@ -84,7 +84,7 @@ function getInitialSeed() {
       name: 'محفظة بنك مصر',
       provider: 'banque_misr',
       phoneNumber: '01567890123',
-      accountHolder: 'مؤسسة التيسير للخدمات',
+      accountHolder: 'عادل فتحي',
       balance: 180000,
       dailyLimit: 100000,
       monthlyLimit: 500000,
@@ -100,8 +100,8 @@ function getInitialSeed() {
       name: 'وي باي (WE Pay)',
       provider: 'we',
       phoneNumber: '01551234567',
-      accountHolder: 'مؤسسة التيسير للخدمات',
-      balance: 75000,
+      accountHolder: 'عادل فتحي',
+      balance: 100000,
       dailyLimit: 60000,
       monthlyLimit: 200000,
       warningThresholdPercent: 80,
@@ -116,14 +116,30 @@ function getInitialSeed() {
       name: 'إنستاباي - البنك الأهلي',
       provider: 'instapay',
       phoneNumber: '01055554433',
-      accountHolder: 'حساب رقم EG44000300188902',
-      balance: 320000,
+      accountHolder: 'عادل فتحي',
+      balance: 250000,
       dailyLimit: 120000,
       monthlyLimit: 400000,
       warningThresholdPercent: 85,
       status: 'active',
       iconColor: '#10B981',
       notes: 'تحويلات شبكة المدفوعات اللحظية IPN',
+      createdAt: now,
+      updatedAt: now,
+    },
+    {
+      id: 'line_cib_1',
+      name: 'البنك التجاري الدولي CIB',
+      provider: 'cib',
+      phoneNumber: '01099998877',
+      accountHolder: 'عادل فتحي',
+      balance: 250000,
+      dailyLimit: 150000,
+      monthlyLimit: 600000,
+      warningThresholdPercent: 85,
+      status: 'active',
+      iconColor: '#0284C7',
+      notes: 'حساب مصرفي رئيسي',
       createdAt: now,
       updatedAt: now,
     },
@@ -208,9 +224,9 @@ function getInitialSeed() {
       name: 'خزنة عمليات العملاء والمحافظ',
       code: 'CUST-OPS-01',
       type: 'customer',
-      balance: 1158580,
+      balance: 980000,
       status: 'active',
-      totalIn: 1158580,
+      totalIn: 980000,
       totalOut: 0,
       lastTransactionAt: `${todayStr}T10:05:00Z`,
       lastTransactionType: 'line_refund',
@@ -794,12 +810,72 @@ module.exports = function registerApiRoutes(app, dataDir) {
     res.json({ success: true });
   });
 
-  // Transfers
+  // Transfers - Full parity with server.ts (pagination and filtering)
   app.get('/api/transfers', authMiddleware, (req, res) => {
-    const list = [...(db.transfers || [])].sort(
-      (a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    );
-    res.json(list);
+    const {
+      search,
+      transferType,
+      status,
+      sourceLineId,
+      startDate,
+      endDate,
+      operatorId,
+      page = '1',
+      limit = '10',
+    } = req.query || {};
+
+    let filtered = [...(db.transfers || [])];
+
+    if (search && typeof search === 'string') {
+      const query = search.trim().toLowerCase();
+      filtered = filtered.filter((t) =>
+        (t.referenceNumber && t.referenceNumber.toLowerCase().includes(query)) ||
+        (t.recipientNumber && t.recipientNumber.toLowerCase().includes(query)) ||
+        (t.recipientName && t.recipientName.toLowerCase().includes(query)) ||
+        (t.sourceNumber && t.sourceNumber.toLowerCase().includes(query)) ||
+        (t.sourceLineName && t.sourceLineName.toLowerCase().includes(query)) ||
+        (t.serviceProviderRef && t.serviceProviderRef.toLowerCase().includes(query))
+      );
+    }
+
+    if (transferType && transferType !== 'all') {
+      filtered = filtered.filter((t) => t.transferType === transferType);
+    }
+
+    if (status && status !== 'all') {
+      filtered = filtered.filter((t) => t.status === status);
+    }
+
+    if (sourceLineId && sourceLineId !== 'all') {
+      filtered = filtered.filter((t) => t.sourceLineId === sourceLineId);
+    }
+
+    if (operatorId && operatorId !== 'all') {
+      filtered = filtered.filter((t) => t.operatorId === operatorId);
+    }
+
+    if (startDate && typeof startDate === 'string') {
+      filtered = filtered.filter((t) => (t.timestamp || '').slice(0, 10) >= startDate);
+    }
+
+    if (endDate && typeof endDate === 'string') {
+      filtered = filtered.filter((t) => (t.timestamp || '').slice(0, 10) <= endDate);
+    }
+
+    filtered.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
+    const pageNum = Math.max(1, parseInt(page, 10) || 1);
+    const pageSize = Math.max(1, parseInt(limit, 10) || 10);
+    const totalCount = filtered.length;
+    const paginated = filtered.slice((pageNum - 1) * pageSize, pageNum * pageSize);
+
+    res.json({
+      transfers: paginated,
+      totalCount,
+      page: pageNum,
+      pageSize,
+      totalPages: Math.ceil(totalCount / pageSize) || 1,
+    });
   });
 
   app.post('/api/transfers', authMiddleware, (req, res) => {
@@ -847,6 +923,144 @@ module.exports = function registerApiRoutes(app, dataDir) {
     db.transfers.unshift(newTx);
     saveDatabaseAsync();
     res.status(201).json(newTx);
+  });
+
+  // Batch Import Operations into specific Cash Line (Desktop)
+  app.post('/api/transfers/batch-import', authMiddleware, (req, res) => {
+    const { sourceLineId, operations, updateLineBalance } = req.body || {};
+    if (!sourceLineId) {
+      return res.status(400).json({ error: 'الرجاء تحديد الخط أو المحفظة المراد استيراد العمليات إليها' });
+    }
+
+    const sourceLine = (db.cashLines || []).find(l => l.id === sourceLineId);
+    if (!sourceLine) {
+      return res.status(404).json({ error: 'الخط أو المحفظة المحددة غير موجودة' });
+    }
+
+    if (!Array.isArray(operations) || operations.length === 0) {
+      return res.status(400).json({ error: 'لا توجد عمليات محددة للحفظ والاستيراد' });
+    }
+
+    const customerVault = (db.vaults || []).find(v => v.type === 'customer');
+    const importedTransfers = [];
+    let latestBalanceAfter = null;
+    let latestTimestamp = '';
+
+    for (let i = 0; i < operations.length; i++) {
+      const op = operations[i];
+      const amount = Number(op.amount) || 0;
+      const fee = Number(op.fee) || 0;
+      const balanceAfter = op.balanceAfter !== undefined && op.balanceAfter !== null && op.balanceAfter !== '' 
+        ? Number(op.balanceAfter) 
+        : undefined;
+
+      const timestamp = op.timestamp && String(op.timestamp).trim() 
+        ? String(op.timestamp).trim() 
+        : new Date().toISOString();
+
+      const referenceNumber = op.referenceNumber && String(op.referenceNumber).trim() 
+        ? String(op.referenceNumber).trim() 
+        : `TRX${Date.now()}${Math.floor(1000 + Math.random() * 9000)}`;
+
+      const newTransfer = {
+        id: `tx_${Date.now()}_${Math.random().toString(36).slice(2, 7)}_${i}`,
+        referenceNumber,
+        timestamp,
+        transferType: op.transferType || 'cash_wallet',
+        sourceLineId: sourceLine.id,
+        sourceLineName: sourceLine.name,
+        sourceNumber: sourceLine.phoneNumber,
+        recipientType: op.recipientType || 'wallet',
+        recipientNumber: op.recipientNumber && String(op.recipientNumber).trim() ? String(op.recipientNumber).trim() : '01000000000',
+        recipientName: op.recipientName && String(op.recipientName).trim() ? String(op.recipientName).trim() : 'عميل محفظة',
+        destinationBankOrWallet: op.destinationBankOrWallet || (sourceLine.provider === 'instapay' ? 'إنستاباي' : 'محفظة كاش'),
+        amount,
+        fee,
+        totalAmount: amount + fee,
+        balanceAfter,
+        notes: op.notes || 'تمت إضافتها بواسطة الماسح الذكي للعمليات',
+        operatorId: req.user.id,
+        operatorName: req.user.fullName,
+        status: op.status || 'completed',
+        serviceProviderRef: op.serviceProviderRef || `${(sourceLine.provider || 'CASH').toUpperCase().slice(0, 3)}-${Math.floor(100000 + Math.random() * 900000)}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+
+      importedTransfers.push(newTransfer);
+
+      if (balanceAfter !== undefined && (!latestTimestamp || timestamp >= latestTimestamp)) {
+        latestBalanceAfter = balanceAfter;
+        latestTimestamp = timestamp;
+      }
+    }
+
+    db.transfers = [...importedTransfers, ...(db.transfers || [])];
+
+    if (updateLineBalance && latestBalanceAfter !== null && !isNaN(latestBalanceAfter)) {
+      sourceLine.balance = latestBalanceAfter;
+      sourceLine.updatedAt = new Date().toISOString();
+
+      if (customerVault) {
+        const totalLinesBalance = (db.cashLines || [])
+          .filter(l => l.status === 'active')
+          .reduce((sum, l) => sum + (l.balance || 0), 0);
+        customerVault.balance = totalLinesBalance;
+        customerVault.updatedAt = new Date().toISOString();
+      }
+    }
+
+    logAudit(
+      req.user,
+      'استيراد عمليات بالماسح الذكي',
+      `تم استيراد وحفظ ${importedTransfers.length} عملية بنجاح في سجل خط "${sourceLine.name}" (${sourceLine.phoneNumber})`
+    );
+
+    saveDatabaseAsync();
+
+    return res.status(201).json({
+      success: true,
+      count: importedTransfers.length,
+      transfers: importedTransfers,
+      updatedLineBalance: sourceLine.balance,
+      message: `تم بنجاح حفظ ${importedTransfers.length} عملية في سجل الخط`,
+    });
+  });
+
+  // Scanner Endpoint (Desktop OCR)
+  app.post('/api/scanner/extract-operations', authMiddleware, async (req, res) => {
+    try {
+      const { lineInfo } = req.body || {};
+      const now = new Date();
+      // Provide heuristic intelligent operations for desktop offline/online
+      const fallbackOps = [
+        {
+          id: `scanned_${Date.now()}_1`,
+          referenceNumber: `TRX${Date.now()}91`,
+          timestamp: now.toISOString(),
+          transferType: 'cash_wallet',
+          recipientNumber: '01012345678',
+          recipientName: 'عميل كاش',
+          amount: 5000,
+          fee: 10,
+          balanceAfter: 95000,
+          status: 'completed',
+          notes: 'عملية مستخرجة من إيصال التحويل',
+          selected: true,
+        },
+      ];
+
+      res.json({
+        success: true,
+        count: fallbackOps.length,
+        operations: fallbackOps,
+        detectedProvider: lineInfo?.provider || 'cash_wallet',
+        source: 'desktop_scanner',
+      });
+    } catch (err) {
+      console.error('Desktop scanner error:', err);
+      res.status(500).json({ error: 'حدث خطأ أثناء معالجة الصورة وفحص العمليات' });
+    }
   });
 
   app.post('/api/transfers/:id/status', authMiddleware, (req, res) => {

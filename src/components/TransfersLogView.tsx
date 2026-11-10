@@ -19,9 +19,12 @@ import {
   AlertCircle,
   RotateCcw,
   SlidersHorizontal,
-  Edit3
+  Edit3,
+  Sparkles,
+  X
 } from 'lucide-react';
 import { EditTransferModal } from './EditTransferModal';
+import { AddOperationsScannerModal } from './AddOperationsScannerModal';
 
 interface TransfersLogViewProps {
   onViewDetails: (transfer: Transfer) => void;
@@ -55,6 +58,12 @@ export const TransfersLogView: React.FC<TransfersLogViewProps> = ({
   // Edit Modal State
   const [editingTransfer, setEditingTransfer] = useState<Transfer | null>(null);
 
+  // Add Operations Scanner Modal State
+  const [isAddOperationsModalOpen, setIsAddOperationsModalOpen] = useState(false);
+  const [successToast, setSuccessToast] = useState<string | null>(null);
+
+  const selectedLine = lines.find((l) => l.id === sourceLineId);
+
   const loadData = async (targetPage = page) => {
     setIsLoading(true);
     try {
@@ -72,13 +81,17 @@ export const TransfersLogView: React.FC<TransfersLogViewProps> = ({
         api.getLines(),
       ]);
 
-      setTransfers(res.transfers);
-      setTotalCount(res.totalCount);
-      setTotalPages(res.totalPages);
-      setPage(res.page);
-      setLines(linesData);
+      const transferList = Array.isArray(res?.transfers) 
+        ? res.transfers 
+        : (Array.isArray(res) ? res : []);
+      setTransfers(transferList);
+      setTotalCount(typeof res?.totalCount === 'number' ? res.totalCount : transferList.length);
+      setTotalPages(typeof res?.totalPages === 'number' ? res.totalPages : (Math.ceil(transferList.length / pageSize) || 1));
+      setPage(typeof res?.page === 'number' ? res.page : targetPage);
+      setLines(Array.isArray(linesData) ? linesData : []);
     } catch (err) {
       console.error('Failed to load transfers log:', err);
+      setTransfers([]);
     } finally {
       setIsLoading(false);
     }
@@ -236,14 +249,14 @@ export const TransfersLogView: React.FC<TransfersLogViewProps> = ({
 
         </div>
 
-        {/* Submit Filter Button */}
-        <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+        {/* Submit Filter Button & Conditional Add Operations Log Button */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-slate-800">
           <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-400">تصفية حسب الخط:</span>
+            <span className="text-xs text-slate-400 font-semibold">تصفية حسب الخط:</span>
             <select
               value={sourceLineId}
               onChange={(e) => setSourceLineId(e.target.value)}
-              className="p-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-slate-200"
+              className="p-1.5 bg-slate-950 border border-slate-700 rounded-lg text-xs text-slate-200 focus:outline-none focus:ring-1 focus:ring-emerald-500"
             >
               <option value="all">جميع الخطوط والمحافظ</option>
               {lines.map((l) => (
@@ -252,15 +265,46 @@ export const TransfersLogView: React.FC<TransfersLogViewProps> = ({
             </select>
           </div>
 
-          <button
-            type="submit"
-            className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center gap-2 transition cursor-pointer shadow-md shadow-emerald-600/20"
-          >
-            <Search className="w-3.5 h-3.5" />
-            <span>تطبيق البحث</span>
-          </button>
+          <div className="flex items-center gap-2.5">
+            <button
+              type="submit"
+              className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs flex items-center gap-2 transition cursor-pointer shadow-md shadow-emerald-600/20 active:scale-95"
+            >
+              <Search className="w-3.5 h-3.5" />
+              <span>تطبيق البحث</span>
+            </button>
+
+            {/* Add Operations Log Button: Hidden until user selects a specific line! */}
+            {sourceLineId && sourceLineId !== 'all' && (
+              <button
+                type="button"
+                onClick={() => setIsAddOperationsModalOpen(true)}
+                className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-bold rounded-xl text-xs flex items-center gap-2 transition cursor-pointer shadow-lg shadow-indigo-900/30 border border-indigo-400/30 animate-in fade-in zoom-in-95 duration-200 active:scale-95"
+                title={`إضافة وقراءة سجل عمليات بالماسح الضوئي لـ: ${selectedLine?.name || ''}`}
+              >
+                <Sparkles className="w-4 h-4 text-amber-300" />
+                <span>إضافة سجل عمليات</span>
+              </button>
+            )}
+          </div>
         </div>
       </form>
+
+      {/* Success Notification Banner */}
+      {successToast && (
+        <div className="p-4 rounded-2xl bg-emerald-950/70 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center justify-between shadow-lg animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="flex items-center gap-2.5">
+            <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
+            <span>{successToast}</span>
+          </div>
+          <button
+            onClick={() => setSuccessToast(null)}
+            className="p-1 hover:bg-emerald-900/50 rounded-lg text-emerald-400 cursor-pointer"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
 
       {/* Transfers Data Table */}
       <div className="rounded-3xl bg-slate-900/80 border border-slate-800 overflow-hidden shadow-xl">
@@ -458,6 +502,19 @@ export const TransfersLogView: React.FC<TransfersLogViewProps> = ({
         onSaved={(updated) => {
           setTransfers(prev => prev.map(t => t.id === updated.id ? updated : t));
           loadData();
+        }}
+      />
+
+      {/* Add Operations Scanner Modal */}
+      <AddOperationsScannerModal
+        isOpen={isAddOperationsModalOpen}
+        onClose={() => setIsAddOperationsModalOpen(false)}
+        cashLine={selectedLine || null}
+        onSuccess={(count) => {
+          setSuccessToast(`تم بنجاح حفظ واستيراد ${count} عملية في سجل خط "${selectedLine?.name || ''}"`);
+          loadData(1);
+          window.dispatchEvent(new CustomEvent('app:global-refresh'));
+          setTimeout(() => setSuccessToast(null), 7000);
         }}
       />
 

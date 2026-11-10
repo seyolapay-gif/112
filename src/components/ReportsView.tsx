@@ -31,10 +31,12 @@ export const ReportsView: React.FC = () => {
         api.getTransfers({ limit: 500 }),
         api.getLines(),
       ]);
-      setTransfers(res.transfers);
-      setLines(linesData);
+      const list = Array.isArray(res?.transfers) ? res.transfers : (Array.isArray(res) ? res : []);
+      setTransfers(list);
+      setLines(Array.isArray(linesData) ? linesData : []);
     } catch (err) {
       console.error('Failed to load report data:', err);
+      setTransfers([]);
     } finally {
       setIsLoading(false);
     }
@@ -52,7 +54,8 @@ export const ReportsView: React.FC = () => {
   const weekAgoStr = weekAgo.toISOString().slice(0, 10);
   const currentMonthStr = now.toISOString().slice(0, 7);
 
-  const filteredTransfers = transfers.filter((t) => {
+  const safeTransfers = Array.isArray(transfers) ? transfers : [];
+  const filteredTransfers = safeTransfers.filter((t) => {
     const tDate = t.timestamp.slice(0, 10);
     if (period === 'today') return tDate === todayStr;
     if (period === 'yesterday') return tDate === yesterdayStr;

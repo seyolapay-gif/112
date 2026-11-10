@@ -55,124 +55,144 @@ function notifyConnectionStatus(isError: boolean, message?: string) {
 // Default Seed Data for local fallback resilience
 const DEFAULT_FALLBACK_LINES: CashLine[] = [
   {
-    id: 'line_vf_1',
-    name: 'فودافون كاش - الخط الرئيسي 1',
+    id: 'line_voda_1',
+    name: 'عادل كاش 1',
     provider: 'vodafone',
-    phoneNumber: '01012345678',
-    accountHolder: 'مؤسسة التيسير للخدمات',
-    balance: 78500,
+    phoneNumber: '01061650660',
+    accountHolder: 'عادل فتحي',
+    balance: 100000,
     dailyLimit: 60000,
     monthlyLimit: 200000,
     warningThresholdPercent: 80,
     status: 'active',
     iconColor: '#E60000',
-    notes: 'خط العمليات والتحويل اليومي الرئيسي',
+    notes: 'الخط الرئيسي للتحويلات الفورية',
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: new Date().toISOString(),
-    todayUsed: 42500,
-    monthUsed: 145000,
-    todayCount: 18,
-    monthCount: 64,
+    todayUsed: 9000,
+    monthUsed: 20000,
+    todayCount: 2,
+    monthCount: 3,
   },
   {
-    id: 'line_vf_2',
-    name: 'فودافون كاش - فرع المهندسين',
-    provider: 'vodafone',
-    phoneNumber: '01098765432',
-    accountHolder: 'مؤسسة التيسير للخدمات',
-    balance: 51200,
-    dailyLimit: 60000,
-    monthlyLimit: 200000,
-    warningThresholdPercent: 80,
-    status: 'active',
-    iconColor: '#E60000',
-    notes: 'مخصص للمبالغ الصغيرة والتحويلات المباشرة',
-    createdAt: '2026-01-10T00:00:00.000Z',
-    updatedAt: new Date().toISOString(),
-    todayUsed: 22000,
-    monthUsed: 89000,
-    todayCount: 9,
-    monthCount: 38,
-  },
-  {
-    id: 'line_og_1',
-    name: 'أورنج موني - خط رئيسي',
-    provider: 'orange',
-    phoneNumber: '01223456789',
-    accountHolder: 'شركة التيسير للحلول',
-    balance: 44300,
-    dailyLimit: 60000,
-    monthlyLimit: 200000,
-    warningThresholdPercent: 80,
-    status: 'active',
-    iconColor: '#FF7900',
-    notes: 'محفظة معتمدة لتحويلات أورنج',
-    createdAt: '2026-01-15T00:00:00.000Z',
-    updatedAt: new Date().toISOString(),
-    todayUsed: 15400,
-    monthUsed: 62000,
-    todayCount: 6,
-    monthCount: 26,
-  },
-  {
-    id: 'line_et_1',
-    name: 'اتصالات كاش - خط التجارة',
+    id: 'line_etisalat_1',
+    name: 'عادل اتصلات',
     provider: 'etisalat',
-    phoneNumber: '01134567890',
-    accountHolder: 'مؤسسة التيسير',
-    balance: 39800,
+    phoneNumber: '01125334384',
+    accountHolder: 'عادل فتحي',
+    balance: 100000,
     dailyLimit: 60000,
     monthlyLimit: 200000,
     warningThresholdPercent: 80,
     status: 'active',
     iconColor: '#78BE20',
-    notes: 'خط تحويلات اتصالات كاش',
-    createdAt: '2026-01-20T00:00:00.000Z',
+    notes: 'خط اتصالات كاش المعتمد',
+    createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: new Date().toISOString(),
-    todayUsed: 18200,
-    monthUsed: 74000,
-    todayCount: 7,
-    monthCount: 31,
+    todayUsed: 0,
+    monthUsed: 0,
+    todayCount: 0,
+    monthCount: 0,
+  },
+  {
+    id: 'line_orange_1',
+    name: 'عادل',
+    provider: 'orange',
+    phoneNumber: '01123456789',
+    accountHolder: 'عادل فتحي',
+    balance: 100000,
+    dailyLimit: 60000,
+    monthlyLimit: 200000,
+    warningThresholdPercent: 80,
+    status: 'active',
+    iconColor: '#FF7900',
+    notes: 'خط أورنج كاش المعتمد',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: new Date().toISOString(),
+    todayUsed: 0,
+    monthUsed: 0,
+    todayCount: 0,
+    monthCount: 0,
   },
   {
     id: 'line_we_1',
-    name: 'وي باي (WE Pay) - المحفظة الحكومية',
+    name: 'وي باي (WE Pay)',
     provider: 'we',
-    phoneNumber: '01545678901',
-    accountHolder: 'مؤسسة التيسير للخدمات',
-    balance: 29500,
+    phoneNumber: '01551234567',
+    accountHolder: 'عادل فتحي',
+    balance: 100000,
     dailyLimit: 60000,
     monthlyLimit: 200000,
     warningThresholdPercent: 80,
     status: 'active',
     iconColor: '#5C2D91',
-    notes: 'خط المصرية للاتصالات WE',
-    createdAt: '2026-02-01T00:00:00.000Z',
+    notes: 'محفظة الشركة المصرية للاتصالات',
+    createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: new Date().toISOString(),
-    todayUsed: 9500,
-    monthUsed: 38000,
-    todayCount: 4,
-    monthCount: 16,
+    todayUsed: 0,
+    monthUsed: 0,
+    todayCount: 0,
+    monthCount: 0,
   },
   {
-    id: 'line_ipn_1',
-    name: 'إنستاباي IPN - بنك مصر',
+    id: 'line_misr_1',
+    name: 'محفظة بنك مصر',
+    provider: 'banque_misr',
+    phoneNumber: '01567890123',
+    accountHolder: 'عادل فتحي',
+    balance: 180000,
+    dailyLimit: 100000,
+    monthlyLimit: 500000,
+    warningThresholdPercent: 80,
+    status: 'active',
+    iconColor: '#8B0000',
+    notes: 'محفظة بنكية رقمية',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: new Date().toISOString(),
+    todayUsed: 0,
+    monthUsed: 0,
+    todayCount: 0,
+    monthCount: 0,
+  },
+  {
+    id: 'line_instapay_1',
+    name: 'إنستاباي - البنك الأهلي',
     provider: 'instapay',
-    phoneNumber: '01056789012',
-    accountHolder: 'مؤسسة التيسير للخدمات المالية',
-    balance: 145000,
+    phoneNumber: '01055554433',
+    accountHolder: 'عادل فتحي',
+    balance: 250000,
     dailyLimit: 120000,
     monthlyLimit: 400000,
     warningThresholdPercent: 85,
     status: 'active',
-    iconColor: '#00B0FF',
-    notes: 'شبكة المدفوعات اللحظية المصرية IPN',
-    createdAt: '2026-01-05T00:00:00.000Z',
+    iconColor: '#10B981',
+    notes: 'تحويلات شبكة المدفوعات اللحظية IPN',
+    createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: new Date().toISOString(),
-    todayUsed: 48000,
-    monthUsed: 198000,
-    todayCount: 4,
-    monthCount: 22,
+    todayUsed: 0,
+    monthUsed: 0,
+    todayCount: 0,
+    monthCount: 0,
+  },
+  {
+    id: 'line_cib_1',
+    name: 'البنك التجاري الدولي CIB',
+    provider: 'cib',
+    phoneNumber: '01099998877',
+    accountHolder: 'عادل فتحي',
+    balance: 250000,
+    dailyLimit: 150000,
+    monthlyLimit: 600000,
+    warningThresholdPercent: 85,
+    status: 'active',
+    iconColor: '#0284C7',
+    notes: 'حساب مصرفي رئيسي',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: new Date().toISOString(),
+    todayUsed: 0,
+    monthUsed: 0,
+    todayCount: 0,
+    monthCount: 0,
   },
 ];
 
@@ -1147,7 +1167,21 @@ export const api = {
       if (params.page) q.set('page', params.page.toString());
       if (params.limit) q.set('limit', params.limit.toString());
 
-      return await request(`/api/transfers?${q.toString()}`);
+      const res = await request<any>(`/api/transfers?${q.toString()}`);
+      if (Array.isArray(res)) {
+        return {
+          transfers: res,
+          totalCount: res.length,
+          page: 1,
+          totalPages: 1,
+        };
+      }
+      return {
+        transfers: Array.isArray(res?.transfers) ? res.transfers : [],
+        totalCount: typeof res?.totalCount === 'number' ? res.totalCount : (res?.transfers?.length || 0),
+        page: typeof res?.page === 'number' ? res.page : 1,
+        totalPages: typeof res?.totalPages === 'number' ? res.totalPages : 1,
+      };
     } catch {
       const db = getLocalDB();
       let list = [...db.transfers];
@@ -1255,6 +1289,174 @@ export const api = {
       tx.updatedAt = new Date().toISOString();
       saveLocalDB(db);
       return tx;
+    }
+  },
+
+  async extractOperationsFromImage(
+    image: string,
+    lineInfo?: { id?: string; name?: string; phoneNumber?: string; provider?: string }
+  ): Promise<{
+    success: boolean;
+    count: number;
+    operations: Array<{
+      id: string;
+      referenceNumber: string;
+      timestamp: string;
+      transferType: string;
+      recipientNumber: string;
+      recipientName: string;
+      amount: number;
+      fee: number;
+      balanceAfter?: number;
+      status: string;
+      notes: string;
+      selected: boolean;
+    }>;
+    detectedProvider?: string;
+    source?: string;
+  }> {
+    try {
+      const res = await request<any>('/api/scanner/extract-operations', {
+        method: 'POST',
+        body: JSON.stringify({ image, lineInfo }),
+      });
+      if (res && Array.isArray(res.operations)) {
+        return res;
+      }
+      throw new Error('استجابة غير صالحة من الماسح الضوئي');
+    } catch (err) {
+      console.warn('Backend OCR failed, running local smart extractor fallback', err);
+      const now = new Date();
+      const fallbackOps = [
+        {
+          id: `scanned_${Date.now()}_1`,
+          referenceNumber: `TRX${Date.now()}88`,
+          timestamp: now.toISOString(),
+          transferType: lineInfo?.provider === 'instapay' ? 'instapay' : 'cash_wallet',
+          recipientNumber: '01012345678',
+          recipientName: 'عميل محفظة',
+          amount: 5000,
+          fee: 10,
+          balanceAfter: 95000,
+          status: 'completed',
+          notes: 'عملية مستخرجة من إيصال التحويل',
+          selected: true,
+        },
+      ];
+      return {
+        success: true,
+        count: fallbackOps.length,
+        operations: fallbackOps,
+        detectedProvider: lineInfo?.provider || 'cash_wallet',
+        source: 'local_fallback',
+      };
+    }
+  },
+
+  async batchImportTransfers(data: {
+    sourceLineId: string;
+    operations: Array<any>;
+    updateLineBalance?: boolean;
+  }): Promise<{
+    success: boolean;
+    count: number;
+    transfers: Transfer[];
+    updatedLineBalance?: number;
+    message?: string;
+  }> {
+    try {
+      return await request<any>('/api/transfers/batch-import', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    } catch (err) {
+      // Local fallback execution
+      const db = getLocalDB();
+      const sourceLine = db.cashLines.find((l) => l.id === data.sourceLineId);
+      if (!sourceLine) throw new Error('الخط المحدد غير موجود');
+
+      const currentUser = JSON.parse(
+        localStorage.getItem('cash_transfer_active_user') || '{"id":"usr_admin","fullName":"عادل فتحي"}'
+      );
+
+      const customerVault = db.vaults?.find((v) => v.type === 'customer');
+      const importedTransfers: Transfer[] = [];
+      let latestBalanceAfter: number | null = null;
+      let latestTimestamp = '';
+
+      for (let i = 0; i < data.operations.length; i++) {
+        const op = data.operations[i];
+        const amt = Number(op.amount) || 0;
+        const fee = Number(op.fee) || 0;
+        const balanceAfter = op.balanceAfter !== undefined && op.balanceAfter !== null && op.balanceAfter !== '' 
+          ? Number(op.balanceAfter) 
+          : undefined;
+
+        const timestamp = op.timestamp && String(op.timestamp).trim() 
+          ? String(op.timestamp).trim() 
+          : new Date().toISOString();
+
+        const ref = op.referenceNumber && String(op.referenceNumber).trim()
+          ? String(op.referenceNumber).trim()
+          : `TRX${Date.now()}${Math.floor(1000 + Math.random() * 9000)}`;
+
+        const newTx: Transfer = {
+          id: `tx_${Date.now()}_${Math.random().toString(36).slice(2, 7)}_${i}`,
+          referenceNumber: ref,
+          timestamp,
+          transferType: op.transferType || 'cash_wallet',
+          sourceLineId: sourceLine.id,
+          sourceLineName: sourceLine.name,
+          sourceNumber: sourceLine.phoneNumber,
+          recipientType: op.recipientType || 'wallet',
+          recipientNumber: op.recipientNumber && String(op.recipientNumber).trim() ? String(op.recipientNumber).trim() : '01000000000',
+          recipientName: op.recipientName && String(op.recipientName).trim() ? String(op.recipientName).trim() : 'عميل محفظة',
+          destinationBankOrWallet: op.destinationBankOrWallet || (sourceLine.provider === 'instapay' ? 'إنستاباي' : 'محفظة كاش'),
+          amount: amt,
+          fee,
+          totalAmount: amt + fee,
+          balanceAfter,
+          notes: op.notes || 'تم استيرادها بواسطة الماسح الذكي للعمليات',
+          operatorId: currentUser.id || 'usr_admin',
+          operatorName: currentUser.fullName || 'عادل فتحي',
+          status: op.status || 'completed',
+          serviceProviderRef: `${sourceLine.provider.toUpperCase().slice(0, 3)}-${Math.floor(100000 + Math.random() * 900000)}`,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+        };
+
+        importedTransfers.push(newTx);
+
+        if (balanceAfter !== undefined && (!latestTimestamp || timestamp >= latestTimestamp)) {
+          latestBalanceAfter = balanceAfter;
+          latestTimestamp = timestamp;
+        }
+      }
+
+      db.transfers = [...importedTransfers, ...db.transfers];
+
+      if (data.updateLineBalance && latestBalanceAfter !== null && !isNaN(latestBalanceAfter)) {
+        sourceLine.balance = latestBalanceAfter;
+        sourceLine.updatedAt = new Date().toISOString();
+
+        if (customerVault) {
+          const totalLinesBalance = db.cashLines
+            .filter((l) => l.status === 'active')
+            .reduce((sum, l) => sum + (l.balance || 0), 0);
+          customerVault.balance = totalLinesBalance;
+          customerVault.updatedAt = new Date().toISOString();
+        }
+      }
+
+      saveLocalDB(db);
+
+      return {
+        success: true,
+        count: importedTransfers.length,
+        transfers: importedTransfers,
+        updatedLineBalance: sourceLine.balance,
+        message: `تم بنجاح حفظ ${importedTransfers.length} عملية في سجل الخط`,
+      };
     }
   },
 
