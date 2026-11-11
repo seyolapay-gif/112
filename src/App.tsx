@@ -15,6 +15,7 @@ import { SettingsView } from './components/SettingsView';
 import { AuditLogView } from './components/AuditLogView';
 import { BackupRestoreView } from './components/BackupRestoreView';
 import { VaultsManagementView } from './components/VaultsManagementView';
+import { ProfitsManagementView } from './components/ProfitsManagementView';
 import { ShiftHandoverView } from './components/ShiftHandoverView';
 import { AdminControlPanelView } from './components/AdminControlPanelView';
 import { ReceiptModal } from './components/ReceiptModal';
@@ -386,13 +387,19 @@ const MainAppContent: React.FC = () => {
           <VaultsManagementView currentUser={user} settings={settings} />
         )}
 
+        {(currentTab === 'profits' || currentTab === 'reports') && (
+          <ProfitsManagementView
+            currentUser={user}
+            onPrintReceipt={(tx) => setSelectedReceiptTransfer(tx)}
+            onViewDetails={(tx) => setSelectedDetailsTransfer(tx)}
+          />
+        )}
+
         {currentTab === 'handovers' && user && (
           <ShiftHandoverView currentUser={user} settings={settings} />
         )}
 
         {currentTab === 'limits' && <LimitsView />}
-
-        {currentTab === 'reports' && <ReportsView />}
 
         {currentTab === 'users' && <UsersView />}
 

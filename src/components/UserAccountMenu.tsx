@@ -876,7 +876,7 @@ export const UserAccountMenu: React.FC<UserAccountMenuProps> = ({
             <span className={`text-[10px] font-mono shrink-0 font-bold px-1.5 py-0.5 rounded ${
               isDark ? 'text-emerald-400 bg-slate-800' : 'text-emerald-700 bg-emerald-50'
             }`}>
-              V 2.44
+              V 4.2.0
             </span>
           </div>
 

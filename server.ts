@@ -110,6 +110,9 @@ export interface Transfer {
   fee: number;
   totalAmount: number;
   balanceAfter?: number; // المبلغ المتاح بعد التحويل
+  profit?: number;
+  profitOverride?: number;
+  customProfitNotes?: string;
   notes: string;
   operatorId: string;
   operatorName: string;
@@ -1078,10 +1081,9 @@ function calculateLineUsage(lineId: string) {
   const todayStr = now.toISOString().slice(0, 10);
   const currentYearMonth = now.toISOString().slice(0, 7);
 
-  // Transfers that count towards limits: 'completed' and 'pending_verification' (outgoing transfers only)
+  // Transfers that count towards limits: 'completed' and 'pending_verification' (both send and receive)
   const validTransfers = db.transfers.filter((t) => 
     t.sourceLineId === lineId && 
-    t.transferType !== 'receive_money' &&
     (t.status === 'completed' || t.status === 'pending_verification')
   );
 
@@ -1910,7 +1912,8 @@ async function startServer() {
     const transferAmount = Number(amount);
     const transferCommission = Math.max(0, Number(commission) || 0);
     const transferFee = Math.max(0, Number(fee) || 0);
-    const totalDeduction = transferAmount + transferCommission + transferFee;
+    // As per user specification: deduction from source line is (Amount + Commission)
+    const lineDeduction = transferAmount + transferCommission;
 
     if (!sourceLineId) {
       return res.status(400).json({ error: 'الرجاء اختيار الخط أو المحفظة المرسلة' });
@@ -1918,6 +1921,13 @@ async function startServer() {
     const finalRecipientNumber = (recipientNumber && String(recipientNumber).trim()) ? String(recipientNumber).trim() : '01000000000';
     if (isNaN(transferAmount) || transferAmount <= 0) {
       return res.status(400).json({ error: 'قيمة التحويل يجب أن تكون أكبر من صفر' });
+    }
+
+    // 0. Single Operation Limit: Max 60,000 EGP per single transaction for electronic wallets (send or receive)
+    if (transferAmount > 60000) {
+      return res.status(400).json({
+        error: `لا يمكن إتمام ${transferType === 'receive_money' ? 'الاستلام' : 'التحويل'}: الحد الأقصى المسموح به في العملية الواحدة للمحافظ الإلكترونية هو 60,000 ج.م فقط!`,
+      });
     }
 
     const sourceLine = db.cashLines.find((l) => l.id === sourceLineId);
@@ -1930,47 +1940,52 @@ async function startServer() {
     }
 
     const isReceiving = transferType === 'receive_money';
-
     const customerVault = db.vaults?.find((v) => v.type === 'customer');
 
-    // Check Balance and Limits only for outgoing transfers (not receive_money)
+    // 1. Strict Zero-Balance and Overdraft Check (Only for outgoing transfers)
     if (!isReceiving) {
-      if (!db.settings.allowOverdraft && sourceLine.balance < totalDeduction) {
+      if (sourceLine.balance <= 0) {
         return res.status(400).json({
-          error: `الرصيد المتاح في الخط (${sourceLine.balance.toLocaleString()} ${db.settings.currency}) غير كافٍ لتنفيذ تحويل بقيمة ${totalDeduction.toLocaleString()} ${db.settings.currency} (شامل عمولة التحويل والرسوم)`,
+          error: 'لا يمكن إتمام عملية التحويل: رصيد الخط الحالي 0 ج.م، يرجى تغذية وشحن رصيد الخط أولاً.',
+        });
+      }
+
+      if (!db.settings.allowOverdraft && sourceLine.balance < lineDeduction) {
+        return res.status(400).json({
+          error: `الرصيد المتاح في الخط (${sourceLine.balance.toLocaleString()} ${db.settings.currency}) غير كافٍ لتنفيذ تحويل بقيمة ${lineDeduction.toLocaleString()} ${db.settings.currency} (مبلغ التحويل: ${transferAmount.toLocaleString()} + عمولة التحويل: ${transferCommission.toLocaleString()})`,
         });
       }
 
       // Check Customer Vault Non-Negative Balance Rule
-      if (customerVault && customerVault.balance < totalDeduction) {
+      if (customerVault && customerVault.balance < lineDeduction) {
         return res.status(400).json({
-          error: `رصيد خزنة عمليات العملاء (${customerVault.balance.toLocaleString()} ${db.settings.currency}) غير كافٍ لتغطية التحويل بقيمة ${totalDeduction.toLocaleString()} ${db.settings.currency}. يُمنع الرصيد السالب طبقاً لضوابط الصندوق المركزي.`,
+          error: `رصيد خزنة عمليات العملاء (${customerVault.balance.toLocaleString()} ${db.settings.currency}) غير كافٍ لتغطية التحويل بقيمة ${lineDeduction.toLocaleString()} ${db.settings.currency}. يُمنع الرصيد السالب طبقاً لضوابط الصندوق المركزي.`,
         });
       }
+    }
 
-      // Check Daily and Monthly Limits
-      const usage = calculateLineUsage(sourceLine.id);
-      const newDailyUsed = usage.todayUsed + totalDeduction;
-      const newMonthlyUsed = usage.monthUsed + totalDeduction;
+    // 2. Strict Daily (60,000) & Monthly (200,000) Limit Enforcement for both Send and Receive
+    const usage = calculateLineUsage(sourceLine.id);
+    const newDailyUsed = usage.todayUsed + transferAmount;
+    const newMonthlyUsed = usage.monthUsed + transferAmount;
 
-      if (newDailyUsed > sourceLine.dailyLimit) {
-        if (!overrideLimit || (user.role !== 'admin' && user.role !== 'operations')) {
-          return res.status(400).json({
-            error: `تم تجاوز الحد اليومي لهذا الخط! الحد اليومي: ${sourceLine.dailyLimit.toLocaleString()} ${db.settings.currency}، المتبقي اليوم: ${usage.remainingDaily.toLocaleString()} ${db.settings.currency}`,
-            limitExceeded: 'daily',
-            remaining: usage.remainingDaily,
-          });
-        }
+    if (newDailyUsed > sourceLine.dailyLimit) {
+      if (!overrideLimit || (user.role !== 'admin' && user.role !== 'operations')) {
+        return res.status(400).json({
+          error: `لا يمكن إتمام ${isReceiving ? 'الاستلام' : 'التحويل'}: تم تجاوز الحد الأقصى اليومي لهذا الخط (${sourceLine.dailyLimit.toLocaleString()} ${db.settings.currency})! المبلغ المتاح ${isReceiving ? 'لاستقباله' : 'لإرساله'} اليوم هو فقط: ${usage.remainingDaily.toLocaleString()} ${db.settings.currency}`,
+          limitExceeded: 'daily',
+          remaining: usage.remainingDaily,
+        });
       }
+    }
 
-      if (newMonthlyUsed > sourceLine.monthlyLimit) {
-        if (!overrideLimit || (user.role !== 'admin' && user.role !== 'operations')) {
-          return res.status(400).json({
-            error: `تم تجاوز الحد الشهري لهذا الخط! الحد الشهري: ${sourceLine.monthlyLimit.toLocaleString()} ${db.settings.currency}، المتبقي هذا الشهر: ${usage.remainingMonthly.toLocaleString()} ${db.settings.currency}`,
-            limitExceeded: 'monthly',
-            remaining: usage.remainingMonthly,
-          });
-        }
+    if (newMonthlyUsed > sourceLine.monthlyLimit) {
+      if (!overrideLimit || (user.role !== 'admin' && user.role !== 'operations')) {
+        return res.status(400).json({
+          error: `لا يمكن إتمام ${isReceiving ? 'الاستلام' : 'التحويل'}: تم تجاوز الحد الأقصى الشهري لهذا الخط (${sourceLine.monthlyLimit.toLocaleString()} ${db.settings.currency})! المبلغ المتاح ${isReceiving ? 'لاستقباله' : 'لإرساله'} لهذا الشهر هو فقط: ${usage.remainingMonthly.toLocaleString()} ${db.settings.currency}`,
+          limitExceeded: 'monthly',
+          remaining: usage.remainingMonthly,
+        });
       }
     }
 
@@ -1980,9 +1995,15 @@ async function startServer() {
     const randomSuffix = Math.floor(1000 + Math.random() * 9000);
     const referenceNumber = isReceiving ? `RCV${datePrefix}${randomSuffix}` : `TRX${datePrefix}${randomSuffix}`;
 
+    // Available balance after transaction: deducts (amount + commission) from source line
     const calculatedBalanceAfter = isReceiving
       ? Number((sourceLine.balance + transferAmount).toFixed(2))
-      : Number((sourceLine.balance - totalDeduction).toFixed(2));
+      : Number((sourceLine.balance - lineDeduction).toFixed(2));
+
+    // Calculate profit: Outgoing = fee - commission; Incoming = fee
+    const calculatedProfit = isReceiving
+      ? transferFee
+      : (transferFee - transferCommission);
 
     const newTransfer: Transfer = {
       id: `tx_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
@@ -1999,7 +2020,8 @@ async function startServer() {
       amount: transferAmount,
       commission: transferCommission,
       fee: transferFee,
-      totalAmount: isReceiving ? transferAmount : totalDeduction,
+      totalAmount: isReceiving ? transferAmount : lineDeduction,
+      profit: calculatedProfit,
       balanceAfter: calculatedBalanceAfter, // المبلغ المتاح بعد التحويل
       notes: notes || '',
       operatorId: user.id,
@@ -2011,7 +2033,7 @@ async function startServer() {
       updatedAt: now.toISOString(),
     };
 
-    // Update line balance: credit if receiving, deduct if sending (including commission and fee)
+    // Update line balance: credit if receiving, deduct (amount + commission) if sending
     sourceLine.balance = calculatedBalanceAfter;
     sourceLine.updatedAt = now.toISOString();
 
@@ -2025,8 +2047,8 @@ async function startServer() {
         customerVault.lastTransactionType = 'line_refund';
         customerVault.lastTransactionAmount = transferAmount;
       } else {
-        customerVault.balance -= totalDeduction;
-        customerVault.totalOut += totalDeduction;
+        customerVault.balance -= lineDeduction;
+        customerVault.totalOut += lineDeduction;
         customerVault.lastTransactionAt = now.toISOString();
         customerVault.lastTransactionType = 'line_deduction';
         customerVault.lastTransactionAmount = transferAmount;
@@ -2363,6 +2385,38 @@ async function startServer() {
     if (!transfer) {
       return res.status(404).json({ error: 'العملية غير موجودة' });
     }
+    return res.json(transfer);
+  });
+
+  // Update profit for a transfer (Admin privilege)
+  app.put('/api/transfers/:id/profit', authMiddleware, requireRole(['admin']), (req: Request, res: Response) => {
+    const { id } = req.params;
+    const { profitOverride, notes } = req.body;
+    const user = (req as any).user as User;
+
+    const transfer = db.transfers.find((t) => t.id === id || t.referenceNumber === id);
+    if (!transfer) {
+      return res.status(404).json({ error: 'العملية غير موجودة' });
+    }
+
+    const newProfit = Number(profitOverride);
+    if (isNaN(newProfit)) {
+      return res.status(400).json({ error: 'قيمة الربح المدخلة غير صحيحة' });
+    }
+
+    transfer.profitOverride = newProfit;
+    if (notes !== undefined) {
+      transfer.customProfitNotes = String(notes);
+    }
+    transfer.updatedAt = new Date().toISOString();
+
+    logAudit(
+      { id: user.id, fullName: user.fullName },
+      'تعديل أرباح العملية',
+      `تم تعديل ربح العملية ${transfer.referenceNumber} بواسطة الأدمن ليصبح ${newProfit} ${db.settings.currency}`
+    );
+
+    saveDatabaseAsync();
     return res.json(transfer);
   });
 

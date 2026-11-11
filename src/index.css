@@ -64,6 +64,31 @@ body,
     font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
     font-variant-numeric: tabular-nums;
   }
+
+  /* Force all date, time, and numeric inputs to strictly display Western / English digits */
+  input[type="date"],
+  input[type="datetime-local"],
+  input[type="time"],
+  input[type="number"] {
+    direction: ltr !important;
+    text-align: right;
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace !important;
+    font-variant-numeric: tabular-nums !important;
+    -webkit-locale: "en-US" !important;
+    unicode-bidi: plaintext;
+  }
+
+  input[type="date"]::-webkit-datetime-edit,
+  input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+  input[type="date"]::-webkit-datetime-edit-text,
+  input[type="date"]::-webkit-datetime-edit-month-field,
+  input[type="date"]::-webkit-datetime-edit-day-field,
+  input[type="date"]::-webkit-datetime-edit-year-field {
+    direction: ltr !important;
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace !important;
+    font-variant-numeric: tabular-nums !important;
+    -webkit-locale: "en-US" !important;
+  }
 }
 
 /* Custom sleek scrollbars */
@@ -215,36 +240,32 @@ html.light .text-white {
 /* =========================================================================
  * Preserve pure crisp white text on ALL colored action buttons & gradients
  * ========================================================================= */
-html.light .bg-emerald-600,
-html.light .bg-emerald-500,
-html.light .bg-blue-600,
-html.light .bg-blue-500,
-html.light .bg-rose-600,
-html.light .bg-rose-500,
-html.light .bg-indigo-600,
-html.light .bg-teal-600,
-html.light [class*="bg-emerald-600"],
-html.light [class*="bg-blue-600"],
-html.light [class*="from-emerald-"],
-html.light [class*="from-blue-"],
-html.light [class*="from-indigo-"],
-html.light [class*="from-rose-"],
-html.light [class*="from-teal-"],
 html.light button.bg-emerald-600,
+html.light button.bg-emerald-500,
 html.light button.bg-blue-600,
+html.light button.bg-blue-500,
+html.light button.bg-rose-600,
+html.light button.bg-rose-500,
+html.light button.bg-indigo-600,
+html.light button.bg-teal-600,
+html.light button[class*="bg-emerald-600"],
+html.light button[class*="bg-blue-600"],
 html.light button[class*="from-emerald-"],
-html.light button[class*="from-blue-"] {
+html.light button[class*="from-blue-"],
+html.light button[class*="from-indigo-"],
+html.light button[class*="from-rose-"],
+html.light button[class*="from-teal-"] {
   color: #ffffff !important;
 }
 
-html.light .bg-emerald-600 *,
-html.light .bg-emerald-500 *,
-html.light .bg-blue-600 *,
-html.light .bg-blue-500 *,
-html.light .bg-rose-600 *,
-html.light [class*="from-emerald-"] *,
-html.light [class*="from-blue-"] *,
-html.light [class*="from-indigo-"] * {
+html.light button.bg-emerald-600 *,
+html.light button.bg-emerald-500 *,
+html.light button.bg-blue-600 *,
+html.light button.bg-blue-500 *,
+html.light button.bg-rose-600 *,
+html.light button[class*="from-emerald-"] *,
+html.light button[class*="from-blue-"] *,
+html.light button[class*="from-indigo-"] * {
   color: #ffffff !important;
 }
 

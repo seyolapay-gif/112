@@ -5,6 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { ProviderBadge, PROVIDER_CONFIG } from './ProviderBadge';
 import { ReceiptModal } from './ReceiptModal';
 import { formatAmount, toEnglishDigits } from '../utils/formatters';
+import { calculateAutoFee } from '../utils/feeCalculator';
 import { 
   Wallet, 
   Building2, 
@@ -27,7 +28,8 @@ import {
   ArrowLeftRight,
   Minimize2,
   Plus,
-  Layers
+  Layers,
+  Pin
 } from 'lucide-react';
 
 interface NewTransferViewProps {
@@ -211,12 +213,20 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
   // Modal to switch source line cleanly without ugly select tag
   const [isLineSwitcherOpen, setIsLineSwitcherOpen] = useState(false);
 
+  // Pinned Default Line state & long-press timer
+  const [pinnedLineId, setPinnedLineId] = useState<string | null>(() => {
+    return localStorage.getItem('seyola_pinned_default_line_id') || null;
+  });
+  const [pinToastMsg, setPinToastMsg] = useState<string | null>(null);
+  const longPressTimerRef = useRef<NodeJS.Timeout | null>(null);
+  const isLongPressTriggeredRef = useRef<boolean>(false);
+
   // Form Fields
   const [transferType, setTransferType] = useState<TransferType>(
     activeSession?.transferType || 'cash_wallet'
   );
   const [sourceLineId, setSourceLineId] = useState<string>(
-    activeSession?.sourceLineId || initialLineId || ''
+    activeSession?.sourceLineId || initialLineId || localStorage.getItem('seyola_pinned_default_line_id') || ''
   );
   const [recipientType, setRecipientType] = useState<'wallet' | 'bank_account'>(
     activeSession?.recipientType || 'wallet'
@@ -254,7 +264,41 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
   const [pendingPayload, setPendingPayload] = useState<any | null>(null);
   const [isReceiptOpen, setIsReceiptOpen] = useState(false);
 
+  const handleTogglePinLine = (line: CashLine, e?: React.MouseEvent) => {
+    if (e) e.stopPropagation();
+    const isCurrentlyPinned = pinnedLineId === line.id;
+    const newPinned = isCurrentlyPinned ? null : line.id;
+    setPinnedLineId(newPinned);
+    if (newPinned) {
+      localStorage.setItem('seyola_pinned_default_line_id', newPinned);
+      setPinToastMsg(`تم تثبيت خط "${line.name}" كخط افتراضي دائماً عند التحويل أو الاستلام 📌`);
+    } else {
+      localStorage.removeItem('seyola_pinned_default_line_id');
+      setPinToastMsg(`تم إلغاء تثبيت الخط الافتراضي`);
+    }
+    setTimeout(() => setPinToastMsg(null), 3000);
+  };
+
+  const handleLinePointerDown = (line: CashLine) => {
+    isLongPressTriggeredRef.current = false;
+    longPressTimerRef.current = setTimeout(() => {
+      isLongPressTriggeredRef.current = true;
+      handleTogglePinLine(line);
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(60);
+      }
+    }, 500);
+  };
+
+  const handleLinePointerUpOrLeave = () => {
+    if (longPressTimerRef.current) {
+      clearTimeout(longPressTimerRef.current);
+      longPressTimerRef.current = null;
+    }
+  };
+
   useEffect(() => {
+    const pinned = localStorage.getItem('seyola_pinned_default_line_id');
     if (activeSession?.mode) {
       setOperationMode(activeSession.mode);
       if (activeSession.mode === 'receive') {
@@ -267,6 +311,9 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
         setCommission('0');
         setDestinationBankOrWallet('فودافون كاش');
       }
+    }
+    if (pinned && (!activeSession?.sourceLineId || activeSession.sourceLineId === '')) {
+      setSourceLineId(pinned);
     }
   }, [initialMode, activeSession?.mode]);
 
@@ -292,7 +339,10 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
       const data = await api.getLines();
       setLines(data);
       let targetId = '';
-      if (initialLineId && data.some((l) => l.id === initialLineId)) {
+      const pinned = localStorage.getItem('seyola_pinned_default_line_id');
+      if (pinned && data.some((l) => l.id === pinned && l.status === 'active')) {
+        targetId = pinned;
+      } else if (initialLineId && data.some((l) => l.id === initialLineId)) {
         targetId = initialLineId;
       } else if (data.length > 0 && !sourceLineId) {
         const active = data.find((l) => l.status === 'active') || data[0];
@@ -339,25 +389,25 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
 
   const selectedLine = lines.find((l) => l.id === sourceLineId);
 
-  // Auto commission calculation based on telecom operator rules or receive settings, editable manually, strictly English digits
+  // Auto commission and tiered fee calculation based on user tier rules, editable manually, strictly English digits
   const handleAmountChange = (val: string) => {
     const englishVal = toEnglishDigits(val).replace(/[^\d]/g, '');
     setAmount(englishVal);
     const num = Number(englishVal);
     if (!isNaN(num) && num > 0) {
       if (operationMode === 'receive') {
-        // Auto-fill receive commission from settings, strictly English digits
-        const autoFee = computeReceiveFee(num, telecomRules);
+        const autoFee = calculateAutoFee(num);
         setFee(toEnglishDigits(autoFee.toString()));
         setCommission('0');
       } else {
         const autoComm = calculateProviderCommission(num, selectedLine, destinationBankOrWallet, recipientNumber, telecomRules);
         setCommission(toEnglishDigits(autoComm.toString()));
+        // Auto tier fee: <=500 -> 5, 500-1000 -> 10, >1000 -> 10 per 1000 (e.g. 3610 -> 40, 6000 -> 60, 9000 -> 90)
+        const autoFee = calculateAutoFee(num);
+        setFee(toEnglishDigits(autoFee.toString()));
       }
     } else {
-      if (operationMode === 'receive') {
-        setFee('0');
-      }
+      setFee('0');
       setCommission('0');
     }
   };
@@ -416,22 +466,40 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
   const numAmount = Number(amount) || 0;
   const numCommission = Math.max(0, Number(commission) || 0);
   const numFee = Math.max(0, Number(fee) || 0);
-  const totalAmount = isReceiving ? numAmount : (numAmount + numCommission + numFee);
+
+  // Line balance deduction is: amount + commission (user specification)
+  const totalAmount = isReceiving ? numAmount : (numAmount + numCommission);
+
+  // Strict Zero-Balance and Limit Calculations (Daily: 60,000 | Monthly: 200,000 | Single: 60,000)
+  const isZeroBalance = Boolean(selectedLine && selectedLine.balance <= 0);
+  const dailyCap = selectedLine ? (selectedLine.dailyLimit || 60000) : 60000;
+  const monthlyCap = selectedLine ? (selectedLine.monthlyLimit || 200000) : 200000;
+  const remainingDaily = selectedLine ? (selectedLine.remainingDaily ?? Math.max(0, dailyCap - (selectedLine.todayUsed || 0))) : 0;
+  const remainingMonthly = selectedLine ? (selectedLine.remainingMonthly ?? Math.max(0, monthlyCap - (selectedLine.monthUsed || 0))) : 0;
+
+  const isMaxSingleExceeded = Boolean(numAmount > 60000);
+  const isDailyLimitExceeded = Boolean(!overrideLimit && selectedLine && numAmount > 0 && numAmount > remainingDaily);
+  const isMonthlyLimitExceeded = Boolean(!overrideLimit && selectedLine && numAmount > 0 && numAmount > remainingMonthly);
+  const isInsufficientBalance = Boolean(selectedLine && operationMode === 'transfer' && totalAmount > selectedLine.balance);
 
   let limitWarning: string | null = null;
   let balanceWarning: string | null = null;
 
-  if (selectedLine && numAmount > 0 && operationMode === 'transfer') {
-    if (totalAmount > selectedLine.balance) {
-      balanceWarning = `الرصيد المتاح في الخط (${formatAmount(selectedLine.balance)} ج.م) غير كافٍ! المبلغ الإجمالي شامل العمولة والرسوم (${formatAmount(totalAmount)} ج.م) يتجاوز الرصيد الحالي.`;
+  if (selectedLine) {
+    if (isMaxSingleExceeded) {
+      limitWarning = `تنبيه حاسم: الحد الأقصى للمعاملة الواحدة للمحافظ الإلكترونية هو 60,000 ج.م فقط! المبلغ المدخل (${formatAmount(numAmount)} ج.م) يتجاوز الحد المسموح.`;
+    } else if (isDailyLimitExceeded) {
+      limitWarning = `لا يمكن إتمام ${isReceiving ? 'الاستلام' : 'التحويل'}: تم تجاوز الحد الأقصى اليومي لهذا الخط (${formatAmount(dailyCap)} ج.م)! المبلغ المتاح ${isReceiving ? 'لاستقباله' : 'لإرساله'} اليوم هو فقط: ${formatAmount(remainingDaily)} ج.م.`;
+    } else if (isMonthlyLimitExceeded) {
+      limitWarning = `لا يمكن إتمام ${isReceiving ? 'الاستلام' : 'التحويل'}: تم تجاوز الحد الأقصى الشهري لهذا الخط (${formatAmount(monthlyCap)} ج.م)! المبلغ المتاح ${isReceiving ? 'لاستقباله' : 'لإرساله'} لهذا الشهر هو فقط: ${formatAmount(remainingMonthly)} ج.م.`;
     }
-    const remainingDaily = selectedLine.remainingDaily ?? selectedLine.dailyLimit;
-    if (totalAmount > remainingDaily) {
-      limitWarning = `المبلغ المطلوب يتجاوز الحد اليومي المتبقي للخط (${formatAmount(remainingDaily)} ج.م)!`;
-    }
-    const remainingMonthly = selectedLine.remainingMonthly ?? selectedLine.monthlyLimit;
-    if (totalAmount > remainingMonthly) {
-      limitWarning = `المبلغ المطلوب يتجاوز الحد الشهري المتبقي للخط (${formatAmount(remainingMonthly)} ج.م)!`;
+
+    if (operationMode === 'transfer') {
+      if (isZeroBalance) {
+        balanceWarning = `تنبيه حاسم: رصيد الخط الحالي 0 ج.م، ولا يمكن إتمام أي عملية تحويل من هذا الخط حتى تتم تغذيته بالسيولة أولاً!`;
+      } else if (isInsufficientBalance) {
+        balanceWarning = `الرصيد المتاح في الخط (${formatAmount(selectedLine.balance)} ج.م) غير كافٍ! إجمالي الخصم المطلوب (${formatAmount(totalAmount)} ج.م شامل عمولة التحويل ${formatAmount(numCommission)} ج.م) يتجاوز الرصيد الحالي.`;
+      }
     }
   }
 
@@ -457,6 +525,33 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
     if (numAmount <= 0) {
       setErrorMessage('الرجاء إدخال مبلغ صحيح أكبر من صفر');
       return;
+    }
+
+    // 0. Single Operation Cap: Max 60,000 EGP
+    if (numAmount > 60000) {
+      setErrorMessage(`عذراً، الحد الأقصى المسموح به في العملية الواحدة للمحافظ الإلكترونية هو 60,000 ج.م فقط! المبلغ المدخل (${formatAmount(numAmount)} ج.م) يتجاوز الحد المسموح.`);
+      return;
+    }
+
+    // Daily & Monthly Limits Enforcement (Both Send and Receive)
+    if (isDailyLimitExceeded) {
+      setErrorMessage(`تم تجاوز الحد الأقصى اليومي لهذا الخط (${formatAmount(dailyCap)} ج.م)! المبلغ المتاح ${isReceiving ? 'لاستقباله' : 'لإرساله'} اليوم هو ${formatAmount(remainingDaily)} ج.م فقط.`);
+      return;
+    }
+    if (isMonthlyLimitExceeded) {
+      setErrorMessage(`تم تجاوز الحد الأقصى الشهري لهذا الخط (${formatAmount(monthlyCap)} ج.م)! المبلغ المتاح ${isReceiving ? 'لاستقباله' : 'لإرساله'} هذا الشهر هو ${formatAmount(remainingMonthly)} ج.م فقط.`);
+      return;
+    }
+
+    if (!isReceiving) {
+      if (isZeroBalance) {
+        setErrorMessage('لا يمكن إتمام التحويل: رصيد الخط الحالي 0 ج.م، ولا توجد سيولة كافية للتحويل.');
+        return;
+      }
+      if (isInsufficientBalance) {
+        setErrorMessage(`رصيد الخط غير كافٍ! إجمالي الخصم (${formatAmount(totalAmount)} ج.م) أكبر من الرصيد المتاح (${formatAmount(selectedLine?.balance || 0)} ج.م).`);
+        return;
+      }
     }
 
     setErrorMessage(null);
@@ -500,6 +595,9 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
       commission: numCommission,
       fee: numFee,
       totalAmount,
+      balanceAfter: isReceiving 
+        ? ((selectedLine?.balance || 0) + numAmount)
+        : Math.max(0, (selectedLine?.balance || 0) - (numAmount + numCommission)),
       notes: '',
       operatorId: user?.id || 'usr_admin',
       operatorName: user?.fullName || 'عادل فتحي',
@@ -756,6 +854,12 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
                             محفظة الاستقبال
                           </span>
                         )}
+                        {selectedLine?.id === pinnedLineId && (
+                          <span className="text-[9px] px-1.5 py-0.2 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30 font-bold flex items-center gap-0.5" title="الخط الافتراضي المثبت">
+                            <Pin className="w-2.5 h-2.5 fill-amber-300 text-amber-300" />
+                            <span>افتراضي</span>
+                          </span>
+                        )}
                       </div>
                       <span className="text-[10px] text-slate-400 block truncate mt-0.5">
                         {isReceiving ? 'رقم محفظة الاستقبال المودع إليها' : 'رقم محفظة الخط'}
@@ -945,9 +1049,11 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
                       {isReceiving ? 'المبلغ المالي المستلم وعمولة الخدمة:' : 'المبلغ المالي ورسوم التحويل:'}
                     </span>
                   </span>
-                  <span className="text-[10px] px-2.5 py-0.5 rounded-full font-bold border text-emerald-400 bg-emerald-500/10 border-emerald-500/30">
-                    {isReceiving ? 'يُضاف للرصيد فوراً (+)' : 'رسوم التحويل: من 0 ج.م'}
-                  </span>
+                  {!isReceiving && (
+                    <span className="text-[10px] px-2.5 py-0.5 rounded-full font-bold border text-emerald-400 bg-emerald-500/10 border-emerald-500/30">
+                      رسوم التحويل: من 0 ج.م
+                    </span>
+                  )}
                 </div>
 
                 {/* If isReceiving: ONLY 2 Columns (Right: Amount, Left: Fee/Commission).
@@ -957,7 +1063,7 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     {/* 1. Right Column: المبلغ المستلم المراد إيداعه (ج.م) * */}
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                      <label className="block text-[11px] sm:text-xs font-bold text-slate-300 mb-1 leading-tight">
                         المبلغ المستلم المراد إيداعه (ج.م) *
                       </label>
                       <div className="relative">
@@ -969,27 +1075,21 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
                           value={amount}
                           onChange={(e) => handleAmountChange(e.target.value)}
                           placeholder="0"
-                          className="w-full py-2 px-3 pl-9 bg-slate-950 border border-slate-700/80 rounded-xl text-lg font-bold font-mono text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner text-right"
+                          className="w-full py-2.5 sm:py-3 px-3.5 pl-9 bg-slate-950 border border-slate-700/80 rounded-xl text-lg sm:text-xl font-bold font-mono text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner text-right"
                         />
                         <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400 font-sans font-bold text-[11px]">
                           ج.م
                         </div>
                       </div>
-                      <span className="text-[10px] text-emerald-400 block mt-1">
-                        ✓ سيتم زيادة رصيد المحفظة المستلمة بهذا المبلغ فوراً
-                      </span>
                     </div>
 
-                    {/* 2. Left Column: عمولة الاستلام / الخدمة (ج.م) - Auto populated from settings, editable manually, strictly English digits */}
+                    {/* 2. Left Column: عمولة الاستلام / الخدمة (ج.م) */}
                     <div>
                       <div className="flex items-center gap-1.5 mb-1">
                         <Coins className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        <label className="text-[11px] font-bold text-slate-300">
+                        <label className="text-[11px] sm:text-xs font-bold text-slate-300 leading-tight">
                           عمولة الاستلام / الخدمة (ج.م)
                         </label>
-                        <span className="text-[9.5px] px-1.5 py-0.2 rounded-md bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold mr-auto">
-                          تلقائية / قابلة للتعديل
-                        </span>
                       </div>
                       <div className="relative">
                         <input
@@ -1009,25 +1109,22 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
                             }
                           }}
                           placeholder="0"
-                          className="w-full py-2 px-3 pl-9 bg-emerald-500/10 border border-emerald-500/40 rounded-xl text-lg font-bold font-mono text-emerald-400 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner text-right"
+                          className="w-full py-2.5 sm:py-3 px-3.5 pl-9 bg-emerald-500/10 border border-emerald-500/40 rounded-xl text-lg sm:text-xl font-bold font-mono text-emerald-400 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner text-right"
                         />
                         <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400 font-sans font-bold text-[11px]">
                           ج.م
                         </div>
                       </div>
-                      <span className="text-[9.5px] text-slate-400 block mt-1">
-                        إجمالي المحصل: <span className="font-mono font-bold text-slate-200">{formatAmount(numAmount + numFee)}</span> ج.م
-                      </span>
                     </div>
                   </div>
                 ) : (
-                  /* 3 Columns Layout matching user attachment image_545c0449.png:
+                  /* 3 Columns Layout matching user attachment:
                       In RTL: Right is Amount, Center is Commission, Left is Fee */
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-2.5 sm:gap-3">
                     
                     {/* 1. Right Column: Transfer Amount (مبلغ التحويل المراد إرساله) */}
                     <div>
-                      <label className="block text-[11px] font-bold text-slate-300 mb-1">
+                      <label className="block text-[11px] sm:text-xs font-bold text-slate-300 mb-1 leading-tight">
                         مبلغ التحويل المراد إرساله (ج.م) *
                       </label>
                       <div className="relative">
@@ -1039,14 +1136,14 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
                           value={amount}
                           onChange={(e) => handleAmountChange(e.target.value)}
                           placeholder="0"
-                          className="w-full py-2 px-3 pl-9 bg-slate-950 border border-slate-700/80 rounded-xl text-lg font-bold font-mono text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner text-right"
+                          className="w-full py-2.5 sm:py-3 px-3.5 pl-9 bg-slate-950 border border-slate-700/80 rounded-xl text-lg sm:text-xl font-bold font-mono text-slate-100 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-inner text-right"
                         />
                         <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400 font-sans font-bold text-[11px]">
                           ج.م
                         </div>
                       </div>
                       {(selectedLine?.provider === 'vodafone' || selectedLine?.provider === 'vodafone_vip') && numAmount > 0 && numAmount < 5 && (
-                        <span className="text-[10px] text-amber-400 block mt-1">
+                        <span className="text-[9px] text-amber-400 block mt-1">
                           * الحد الأدنى لفودافون كاش: 5 ج.م
                         </span>
                       )}
@@ -1058,7 +1155,7 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
                         <span className="w-4 h-4 rounded-full bg-emerald-500 text-white flex items-center justify-center text-[10px] font-black shrink-0 shadow-xs">
                           %
                         </span>
-                        <label className="text-[11px] font-bold text-slate-300">
+                        <label className="text-[11px] sm:text-xs font-bold text-slate-300 leading-tight">
                           عمولة التحويل (ج.م)
                         </label>
                       </div>
@@ -1080,19 +1177,11 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
                             }
                           }}
                           placeholder="0"
-                          className="w-full py-2 px-3 pl-9 bg-emerald-500/10 border border-emerald-500/40 rounded-xl text-lg font-bold font-mono text-emerald-400 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner text-right"
+                          className="w-full py-2.5 sm:py-3 px-3.5 pl-9 bg-emerald-500/10 border border-emerald-500/40 rounded-xl text-lg sm:text-xl font-bold font-mono text-emerald-400 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500 shadow-inner text-right"
                         />
                         <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400 font-sans font-bold text-[11px]">
                           ج.م
                         </div>
-                      </div>
-                      <div className="mt-1 flex items-center justify-between text-[9.5px] text-slate-400">
-                        <span>
-                          {numAmount <= 2000 && (selectedLine?.monthCount === 0 || !selectedLine?.monthCount)
-                            ? 'أول معاملة بالشهر مجاناً (0 ج.م)'
-                            : 'عمولة المشغل (تلقائية)'}
-                        </span>
-                        <span className="font-mono text-emerald-400 font-bold">{commission || '0'} ج.م</span>
                       </div>
                     </div>
 
@@ -1100,7 +1189,7 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
                     <div>
                       <div className="flex items-center gap-1.5 mb-1">
                         <Coins className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                        <label className="text-[11px] font-bold text-slate-300">
+                        <label className="text-[11px] sm:text-xs font-bold text-slate-300 leading-tight">
                           رسوم التحويل (ج.م)
                         </label>
                       </div>
@@ -1122,15 +1211,12 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
                             }
                           }}
                           placeholder="0"
-                          className="w-full py-2 px-3 pl-9 bg-slate-950 border border-slate-700/80 rounded-xl text-lg font-bold font-mono text-amber-400 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-inner text-right"
+                          className="w-full py-2.5 sm:py-3 px-3.5 pl-9 bg-slate-950 border border-slate-700/80 rounded-xl text-lg sm:text-xl font-bold font-mono text-amber-400 placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-amber-500 shadow-inner text-right"
                         />
                         <div className="absolute inset-y-0 left-0 pl-2.5 flex items-center pointer-events-none text-slate-400 font-sans font-bold text-[11px]">
                           ج.م
                         </div>
                       </div>
-                      <span className="text-[9.5px] text-slate-400 block mt-1">
-                        إجمالي الخصم: <span className="font-mono font-bold text-slate-200">{formatAmount(totalAmount)}</span> ج.م
-                      </span>
                     </div>
 
                   </div>
@@ -1139,8 +1225,8 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
 
             </div>
 
-            {/* Warnings if limit or balance exceeded (Outgoing only) */}
-            {!isReceiving && (balanceWarning || limitWarning) && (
+            {/* Warnings if limit or balance exceeded (Both Send and Receive) */}
+            {(balanceWarning || limitWarning) && (
               <div className="p-3 rounded-xl bg-amber-950/60 border border-amber-500/50 space-y-1.5 text-xs text-amber-200 shadow-md">
                 <div className="flex items-center gap-1.5 font-bold text-amber-300">
                   <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
@@ -1167,10 +1253,12 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
             {/* 4. Action Button: High-End Tailored Button for Receive vs Transfer */}
             <button
               type="submit"
-              disabled={isSubmitting}
+              disabled={isSubmitting || (!isReceiving && (isZeroBalance || isInsufficientBalance || isDailyLimitExceeded || isMonthlyLimitExceeded))}
               className={`w-full py-2.5 sm:py-3 text-white font-bold rounded-xl text-sm shadow-lg flex items-center justify-center gap-2 transition-all duration-200 cursor-pointer active:scale-[0.99] disabled:opacity-50 disabled:cursor-not-allowed ${
                 isReceiving
                   ? 'bg-gradient-to-r from-blue-600 via-teal-600 to-emerald-600 hover:from-blue-500 hover:to-emerald-500 shadow-teal-600/25'
+                  : isZeroBalance
+                  ? 'bg-rose-900/60 border border-rose-500/50 text-rose-300'
                   : 'bg-gradient-to-r from-emerald-600 via-emerald-500 to-teal-500 hover:from-emerald-500 hover:to-teal-400 shadow-emerald-600/25'
               }`}
             >
@@ -1183,6 +1271,11 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
                 <>
                   <ArrowDownLeft className="w-4 h-4" />
                   <span>تأكيد استلام وإيداع المبلغ في المحفظة</span>
+                </>
+              ) : isZeroBalance ? (
+                <>
+                  <AlertTriangle className="w-4 h-4 text-rose-400" />
+                  <span>الرصيد 0 ج.م - لا يمكن التحويل</span>
                 </>
               ) : (
                 <>
@@ -1279,8 +1372,8 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
                 <span className="font-mono font-bold text-white">{formatAmount(numAmount)} ج.م</span>
               </div>
               <div className="flex justify-between items-center text-[11px]">
-                <span className="text-slate-400">{isReceiving ? 'عمولة الخدمة المكتسبة:' : 'رسوم المعاملة:'}</span>
-                <span className="font-mono font-bold text-amber-400">{formatAmount(numFee)} ج.م</span>
+                <span className="text-slate-400">{isReceiving ? 'عمولة الخدمة المكتسبة:' : 'عمولة التحويل:'}</span>
+                <span className="font-mono font-bold text-amber-400">{formatAmount(isReceiving ? numFee : numCommission)} ج.م</span>
               </div>
               <div className="flex justify-between items-center pt-2 border-t border-slate-800 font-bold text-xs">
                 <span className="text-white">{isReceiving ? 'الإجمالي المحصل من العميل:' : 'إجمالي الخصم من المصدر:'}</span>
@@ -1323,18 +1416,46 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
               </button>
             </div>
 
+            {/* Long-press instruction hint banner */}
+            <div className="p-2.5 rounded-xl bg-amber-500/10 border border-amber-500/25 text-[11px] text-amber-300 flex items-center justify-between">
+              <span className="flex items-center gap-1.5 font-bold">
+                <Pin className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                <span>اضغط مطولاً على أي خط لتثبيته كافتراضي دائماً عند التحويل أو الاستلام 📌</span>
+              </span>
+            </div>
+
+            {/* Pin Confirmation Toast Banner */}
+            {pinToastMsg && (
+              <div className="p-2 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-xs font-bold text-emerald-300 text-center animate-fade-in flex items-center justify-center gap-1.5 shadow-md">
+                <Pin className="w-3.5 h-3.5 text-emerald-400" />
+                <span>{pinToastMsg}</span>
+              </div>
+            )}
+
             <div className="space-y-2 max-h-80 overflow-y-auto">
               {lines.map((l) => {
                 const isSelected = l.id === sourceLineId;
+                const isPinned = l.id === pinnedLineId;
                 return (
                   <div
                     key={l.id}
-                    onClick={() => handleSourceLineChange(l.id)}
-                    className={`p-3 rounded-xl border transition flex items-center justify-between gap-2.5 cursor-pointer ${
+                    onClick={() => {
+                      if (isLongPressTriggeredRef.current) return;
+                      handleSourceLineChange(l.id);
+                    }}
+                    onPointerDown={() => handleLinePointerDown(l)}
+                    onPointerUp={handleLinePointerUpOrLeave}
+                    onPointerLeave={handleLinePointerUpOrLeave}
+                    onTouchStart={() => handleLinePointerDown(l)}
+                    onTouchEnd={handleLinePointerUpOrLeave}
+                    onTouchMove={handleLinePointerUpOrLeave}
+                    className={`p-3 rounded-xl border transition flex items-center justify-between gap-2.5 cursor-pointer select-none relative group ${
                       isSelected
                         ? isReceiving
                           ? 'bg-slate-800/90 border-blue-500 shadow-md ring-1 ring-blue-500/30'
                           : 'bg-slate-800/90 border-emerald-500 shadow-md ring-1 ring-emerald-500/30'
+                        : isPinned
+                        ? 'bg-amber-950/20 border-amber-500/50 hover:bg-slate-800/50'
                         : 'bg-slate-950/70 border-slate-800 hover:bg-slate-800/50 hover:border-slate-700'
                     }`}
                   >
@@ -1343,14 +1464,38 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
                         <ProviderBadge provider={l.provider} size="sm" showLabel={false} />
                       </div>
                       <div>
-                        <div className="font-bold text-white text-xs">{l.name}</div>
+                        <div className="font-bold text-white text-xs flex items-center gap-1.5">
+                          <span>{l.name}</span>
+                          {isPinned && (
+                            <span className="px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[9px] font-bold flex items-center gap-0.5">
+                              <Pin className="w-2.5 h-2.5 fill-amber-300 text-amber-300" />
+                              <span>مثبت كافتراضي</span>
+                            </span>
+                          )}
+                        </div>
                         <div className="font-mono text-[10px] text-emerald-400" dir="ltr">{l.phoneNumber}</div>
                       </div>
                     </div>
 
-                    <div className="text-left">
-                      <div className="font-mono font-bold text-white text-xs">{formatAmount(l.balance)} ج.م</div>
-                      <div className="text-[9px] text-slate-400">رصيد متاح</div>
+                    <div className="flex items-center gap-2.5">
+                      <div className="text-left">
+                        <div className="font-mono font-bold text-white text-xs">{formatAmount(l.balance)} ج.م</div>
+                        <div className="text-[9px] text-slate-400">رصيد متاح</div>
+                      </div>
+
+                      {/* Direct Pin Button (allows quick click or long press) */}
+                      <button
+                        type="button"
+                        onClick={(e) => handleTogglePinLine(l, e)}
+                        title={isPinned ? 'إلغاء التثبيت الافتراضي' : 'تثبيت كخط افتراضي (أو اضغط مطولاً)'}
+                        className={`p-1.5 rounded-lg border transition cursor-pointer ${
+                          isPinned
+                            ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
+                            : 'bg-slate-800/60 border-slate-700/60 text-slate-400 hover:text-amber-300 hover:border-amber-500/40 opacity-70 group-hover:opacity-100'
+                        }`}
+                      >
+                        <Pin className={`w-3.5 h-3.5 ${isPinned ? 'fill-amber-300' : ''}`} />
+                      </button>
                     </div>
                   </div>
                 );

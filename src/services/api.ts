@@ -1061,7 +1061,24 @@ export const api = {
       const commission = Math.max(0, Number((data as any).commission) || 0);
       const fee = Math.max(0, Number(data.fee) || 0);
       const isReceiving = data.transferType === 'receive_money';
-      const total = isReceiving ? amount : (amount + commission + fee);
+      const total = isReceiving ? amount : (amount + commission);
+
+      if (amount > 60000) {
+        throw new Error(`لا يمكن إتمام ${isReceiving ? 'الاستلام' : 'التحويل'}: الحد الأقصى المسموح به في العملية الواحدة للمحافظ الإلكترونية هو 60,000 ج.م فقط!`);
+      }
+
+      const dailyCap = line.dailyLimit || 60000;
+      const monthlyCap = line.monthlyLimit || 200000;
+      const remainingDaily = Math.max(0, dailyCap - (line.todayUsed || 0));
+      const remainingMonthly = Math.max(0, monthlyCap - (line.monthUsed || 0));
+
+      if (amount > remainingDaily && !data.overrideLimit) {
+        throw new Error(`تم تجاوز الحد الأقصى اليومي لهذا الخط (${dailyCap.toLocaleString('en-US')} ج.م)! المتاح ${isReceiving ? 'لاستقباله' : 'لإرساله'} اليوم: ${remainingDaily.toLocaleString('en-US')} ج.م`);
+      }
+
+      if (amount > remainingMonthly && !data.overrideLimit) {
+        throw new Error(`تم تجاوز الحد الأقصى الشهري لهذا الخط (${monthlyCap.toLocaleString('en-US')} ج.م)! المتاح ${isReceiving ? 'لاستقباله' : 'لإرساله'} هذا الشهر: ${remainingMonthly.toLocaleString('en-US')} ج.م`);
+      }
 
       if (!isReceiving && line.balance < total && !data.overrideLimit) {
         throw new Error(`الرصيد المتاح (${line.balance.toLocaleString('en-US')} ج.م) غير كافٍ لتغطية المبلغ والعمولة`);
@@ -1069,6 +1086,8 @@ export const api = {
 
       if (isReceiving) {
         line.balance += amount;
+        line.todayUsed = (line.todayUsed || 0) + amount;
+        line.monthUsed = (line.monthUsed || 0) + amount;
         line.todayCount = (line.todayCount || 0) + 1;
         line.monthCount = (line.monthCount || 0) + 1;
       } else {
@@ -1286,6 +1305,26 @@ export const api = {
         tx.notes = data.notes;
       }
 
+      tx.updatedAt = new Date().toISOString();
+      saveLocalDB(db);
+      return tx;
+    }
+  },
+
+  async updateTransferProfit(id: string, profitOverride: number, notes?: string): Promise<Transfer> {
+    try {
+      return await request<Transfer>(`/api/transfers/${id}/profit`, {
+        method: 'PUT',
+        body: JSON.stringify({ profitOverride, notes }),
+      });
+    } catch {
+      const db = getLocalDB();
+      const tx = db.transfers.find((t) => t.id === id || t.referenceNumber === id);
+      if (!tx) throw new Error('العملية غير موجودة');
+      tx.profitOverride = profitOverride;
+      if (notes !== undefined) {
+        tx.customProfitNotes = notes;
+      }
       tx.updatedAt = new Date().toISOString();
       saveLocalDB(db);
       return tx;
@@ -1567,7 +1606,7 @@ export const api = {
       const db = getLocalDB();
       return {
         backupDate: new Date().toISOString(),
-        version: '2.44.0',
+        version: '4.2.0',
         data: db,
       };
     }

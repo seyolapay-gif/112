@@ -251,10 +251,12 @@ export const EditTransferModal: React.FC<EditTransferModalProps> = ({
               </div>
               <input
                 type="date"
+                lang="en"
+                dir="ltr"
                 required
                 value={dateVal}
                 onChange={(e) => setDateVal(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-2xl bg-slate-950/70 border border-slate-700 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 text-white font-mono text-sm outline-none transition"
+                className="w-full px-3.5 py-2.5 rounded-2xl bg-slate-950/70 border border-slate-700 focus:border-cyan-500 focus:ring-2 focus:ring-cyan-500/20 text-white font-mono text-sm outline-none transition text-center tracking-wider"
               />
             </div>
 

@@ -792,7 +792,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({ initialTab = 'typogr
                 <h2 className="text-base font-bold text-white flex items-center gap-2 flex-wrap">
                   <span>تصدير واستخراج نسخة سطح المكتب (.exe) لنظام ويندوز</span>
                   <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-blue-500/20 text-blue-300 font-bold border border-blue-500/30 font-mono">
-                    الإصدار V 2.44
+                    الإصدار V 4.2.0
                   </span>
                   <span className="text-[10px] px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/30">
                     مع ميزة اختيار مسار التثبيت

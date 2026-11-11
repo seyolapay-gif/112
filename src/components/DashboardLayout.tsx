@@ -27,6 +27,7 @@ import {
   ChevronDown,
   Building2,
   Layers,
+  TrendingUp,
   SlidersHorizontal
 } from 'lucide-react';
 import { ConnectionStatusBadge } from './ConnectionStatusBadge';
@@ -199,11 +200,11 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   const navItems = [
     { id: 'dashboard', label: 'الرئيسية', icon: LayoutDashboard },
     { id: 'vaults', label: 'إدارة الخزن المالية', icon: Building2 },
+    { id: 'profits', label: 'قسم الأرباح', icon: TrendingUp },
     { id: 'handovers', label: 'التسليم والتسلّم (النوبات)', icon: Layers },
     { id: 'lines', label: 'خطوط الكاش والمحافظ', icon: Wallet },
     { id: 'transfers', label: 'سجل التحويلات والعمليات', icon: History },
     { id: 'limits', label: 'الحدود اليومية والشهرية', icon: Gauge },
-    { id: 'reports', label: 'التقارير المالية', icon: BarChart3 },
     ...(canManageUsers ? [{ id: 'users', label: 'المستخدمون والصلاحيات', icon: Users }] : []),
     ...(canManageSettings ? [{ id: 'settings', label: 'الإعدادات', icon: Settings }] : []),
     { id: 'audit', label: 'سجل التدقيق', icon: FileText },
@@ -212,7 +213,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   ];
 
   return (
-    <div className="fixed inset-0 w-full h-full overflow-hidden bg-slate-950 text-slate-100 flex font-sans selection:bg-emerald-500 selection:text-white" dir="rtl">
+    <div className="fixed inset-0 w-full h-full overflow-hidden bg-slate-100 dark:bg-slate-950 text-slate-900 dark:text-slate-100 flex font-sans selection:bg-emerald-500 selection:text-white" dir="rtl">
       
       {/* Sidebar (Desktop & Tablet) - 100% Fixed and Anchored, never moves up or down */}
       <aside className="hidden lg:flex flex-col w-72 h-full bg-slate-900 border-l border-slate-800 shrink-0 select-none z-30">
@@ -227,7 +228,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 إدارة التحويلات المالية
               </h1>
               <span className="text-[10px] font-mono font-bold px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 shrink-0">
-                V 2.44
+                V 4.2.0
               </span>
             </div>
             <p className="text-[11px] text-slate-400 mt-0.5">
@@ -270,14 +271,14 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           })}
         </nav>
 
-        {/* Sidebar Footer Status & Version V 2.44 */}
+        {/* Sidebar Footer Status & Version V 4.2.0 */}
         <div className="p-3.5 border-t border-slate-800 flex items-center justify-between text-[11px] bg-slate-950/40">
           <div className="flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
             <span className="text-slate-400 font-medium">النسخة الرسمية</span>
           </div>
           <span className="text-emerald-400 font-mono font-black text-xs px-2 py-0.5 rounded bg-slate-800 border border-slate-700">
-            V 2.44
+            V 4.2.0
           </span>
         </div>
       </aside>
@@ -499,7 +500,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         )}
 
         {/* Viewport Content - Only this area scrolls vertically */}
-        <main ref={mainContentRef} className="flex-1 overflow-y-auto p-2.5 sm:p-3.5 lg:p-4 w-full min-w-0">
+        <main ref={mainContentRef} className="flex-1 overflow-y-auto p-2.5 sm:p-3.5 lg:p-4 w-full min-w-0 bg-slate-100 dark:bg-slate-950">
           {children}
         </main>
 

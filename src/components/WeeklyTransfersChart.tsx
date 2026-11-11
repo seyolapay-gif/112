@@ -176,22 +176,22 @@ export const WeeklyTransfersChart: React.FC<WeeklyTransfersChartProps> = ({ data
   };
 
   return (
-    <div className="p-6 rounded-3xl bg-slate-900/90 border border-slate-800 flex flex-col justify-between shadow-xl">
+    <div className="p-6 rounded-3xl bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-slate-800 flex flex-col justify-between shadow-sm dark:shadow-xl">
       {/* Header with Title and Control Buttons */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-5">
         <div>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500/20 to-teal-500/20 border border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
               <BarChart3 className="w-4 h-4" />
             </div>
-            <h2 className="text-base sm:text-lg font-black text-white">
+            <h2 className="text-base sm:text-lg font-black text-slate-900 dark:text-white">
               حجم التحويلات اليومية (الواردة والصادرة)
             </h2>
-            <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 font-semibold">
+            <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/25 font-semibold">
               Recharts تفاعلي
             </span>
           </div>
-          <p className="text-xs text-slate-400 mt-1">
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
             مقارنة تفاعلية لحجم السيولة النقدية المستلمة والمحولة يومياً عبر خطوط ومحافظ الكاش خلال الأسبوع
           </p>
         </div>
@@ -199,13 +199,13 @@ export const WeeklyTransfersChart: React.FC<WeeklyTransfersChartProps> = ({ data
         {/* Action Controls: Chart type & Filter toggles */}
         <div className="flex items-center gap-3 sm:gap-4 flex-wrap">
           {/* Chart Type Toggle */}
-          <div className="flex items-center gap-1 bg-slate-950/80 p-1.5 rounded-2xl border border-slate-800">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-950/80 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800">
             <button
               onClick={() => setChartType('bar')}
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer leading-normal ${
                 chartType === 'bar'
                   ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
-                  : 'text-slate-400 hover:text-slate-200'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
               title="مخطط أشرطة متجاورة"
             >
@@ -216,7 +216,7 @@ export const WeeklyTransfersChart: React.FC<WeeklyTransfersChartProps> = ({ data
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer leading-normal ${
                 chartType === 'area'
                   ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
-                  : 'text-slate-400 hover:text-slate-200'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
               title="مخطط مساحي متدرج"
             >
@@ -227,7 +227,7 @@ export const WeeklyTransfersChart: React.FC<WeeklyTransfersChartProps> = ({ data
               className={`px-3 py-1.5 rounded-xl text-xs font-bold transition cursor-pointer leading-normal ${
                 chartType === 'line'
                   ? 'bg-emerald-600 text-white shadow-md shadow-emerald-600/30'
-                  : 'text-slate-400 hover:text-slate-200'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
               title="مخطط خطي"
             >
@@ -236,13 +236,13 @@ export const WeeklyTransfersChart: React.FC<WeeklyTransfersChartProps> = ({ data
           </div>
 
           {/* Metric Filter */}
-          <div className="flex items-center gap-1 bg-slate-950/80 p-1.5 rounded-2xl border border-slate-800 text-xs">
+          <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-950/80 p-1.5 rounded-2xl border border-slate-200 dark:border-slate-800 text-xs">
             <button
               onClick={() => setFilterMode('both')}
               className={`px-3 py-1.5 rounded-xl font-bold transition cursor-pointer leading-normal ${
                 filterMode === 'both'
-                  ? 'bg-slate-800 text-white border border-slate-700 shadow-sm'
-                  : 'text-slate-400 hover:text-slate-200'
+                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
               الكل
@@ -251,8 +251,8 @@ export const WeeklyTransfersChart: React.FC<WeeklyTransfersChartProps> = ({ data
               onClick={() => setFilterMode('incoming')}
               className={`px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer leading-normal ${
                 filterMode === 'incoming'
-                  ? 'bg-emerald-950 text-emerald-400 border border-emerald-700 shadow-sm'
-                  : 'text-slate-400 hover:text-emerald-400'
+                  ? 'bg-emerald-100 dark:bg-emerald-950 text-emerald-800 dark:text-emerald-400 border border-emerald-300 dark:border-emerald-700 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400'
               }`}
             >
               <ArrowDownLeft className="w-3.5 h-3.5" />
@@ -262,8 +262,8 @@ export const WeeklyTransfersChart: React.FC<WeeklyTransfersChartProps> = ({ data
               onClick={() => setFilterMode('outgoing')}
               className={`px-3 py-1.5 rounded-xl font-bold transition flex items-center gap-1.5 cursor-pointer leading-normal ${
                 filterMode === 'outgoing'
-                  ? 'bg-rose-950 text-rose-400 border border-rose-700 shadow-sm'
-                  : 'text-slate-400 hover:text-rose-400'
+                  ? 'bg-rose-100 dark:bg-rose-950 text-rose-800 dark:text-rose-400 border border-rose-300 dark:border-rose-700 shadow-sm'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-rose-600 dark:hover:text-rose-400'
               }`}
             >
               <ArrowUpRight className="w-3.5 h-3.5" />
@@ -276,50 +276,50 @@ export const WeeklyTransfersChart: React.FC<WeeklyTransfersChartProps> = ({ data
       {/* Quick Summary Cards above the chart */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
         {/* Total Incoming */}
-        <div className="p-3 bg-slate-950/60 rounded-2xl border border-slate-800/80 hover:border-emerald-500/40 transition">
-          <div className="flex items-center gap-1.5 text-xs text-emerald-400 font-semibold mb-1">
+        <div className="p-3 bg-emerald-50/70 dark:bg-slate-950/60 rounded-2xl border border-emerald-200 dark:border-slate-800/80 hover:border-emerald-500/40 transition">
+          <div className="flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400 font-semibold mb-1">
             <ArrowDownLeft className="w-3.5 h-3.5" />
             <span>إجمالي الوارد (أسبوعياً)</span>
           </div>
-          <div className="text-base sm:text-lg font-black text-white font-mono">
+          <div className="text-base sm:text-lg font-black text-emerald-900 dark:text-white font-mono">
             {formatAmount(weekTotals.totalIncoming)}{' '}
-            <span className="text-[11px] font-sans text-slate-400">ج.م</span>
+            <span className="text-[11px] font-sans text-slate-500 dark:text-slate-400">ج.م</span>
           </div>
         </div>
 
         {/* Total Outgoing */}
-        <div className="p-3 bg-slate-950/60 rounded-2xl border border-slate-800/80 hover:border-rose-500/40 transition">
-          <div className="flex items-center gap-1.5 text-xs text-rose-400 font-semibold mb-1">
+        <div className="p-3 bg-rose-50/70 dark:bg-slate-950/60 rounded-2xl border border-rose-200 dark:border-slate-800/80 hover:border-rose-500/40 transition">
+          <div className="flex items-center gap-1.5 text-xs text-rose-700 dark:text-rose-400 font-semibold mb-1">
             <ArrowUpRight className="w-3.5 h-3.5" />
             <span>إجمالي الصادر (أسبوعياً)</span>
           </div>
-          <div className="text-base sm:text-lg font-black text-white font-mono">
+          <div className="text-base sm:text-lg font-black text-rose-900 dark:text-white font-mono">
             {formatAmount(weekTotals.totalOutgoing)}{' '}
-            <span className="text-[11px] font-sans text-slate-400">ج.م</span>
+            <span className="text-[11px] font-sans text-slate-500 dark:text-slate-400">ج.م</span>
           </div>
         </div>
 
         {/* Net Flow */}
-        <div className="p-3 bg-slate-950/60 rounded-2xl border border-slate-800/80 hover:border-cyan-500/40 transition">
-          <div className="flex items-center gap-1.5 text-xs text-cyan-400 font-semibold mb-1">
+        <div className="p-3 bg-cyan-50/70 dark:bg-slate-950/60 rounded-2xl border border-cyan-200 dark:border-slate-800/80 hover:border-cyan-500/40 transition">
+          <div className="flex items-center gap-1.5 text-xs text-cyan-700 dark:text-cyan-400 font-semibold mb-1">
             <Scale className="w-3.5 h-3.5" />
             <span>صافي السيولة النقدية</span>
           </div>
-          <div className={`text-base sm:text-lg font-black font-mono ${weekTotals.netFlow >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+          <div className={`text-base sm:text-lg font-black font-mono ${weekTotals.netFlow >= 0 ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'}`}>
             {weekTotals.netFlow >= 0 ? '+' : ''}{formatAmount(weekTotals.netFlow)}{' '}
-            <span className="text-[11px] font-sans text-slate-400">ج.م</span>
+            <span className="text-[11px] font-sans text-slate-500 dark:text-slate-400">ج.م</span>
           </div>
         </div>
 
         {/* Daily Average */}
-        <div className="p-3 bg-slate-950/60 rounded-2xl border border-slate-800/80 hover:border-amber-500/40 transition">
-          <div className="flex items-center gap-1.5 text-xs text-amber-400 font-semibold mb-1">
+        <div className="p-3 bg-amber-50/70 dark:bg-slate-950/60 rounded-2xl border border-amber-200 dark:border-slate-800/80 hover:border-amber-500/40 transition">
+          <div className="flex items-center gap-1.5 text-xs text-amber-700 dark:text-amber-400 font-semibold mb-1">
             <Activity className="w-3.5 h-3.5" />
             <span>متوسط حجم المعاملات اليومي</span>
           </div>
-          <div className="text-base sm:text-lg font-black text-amber-300 font-mono">
+          <div className="text-base sm:text-lg font-black text-amber-900 dark:text-amber-300 font-mono">
             {formatAmount(weekTotals.avgDaily)}{' '}
-            <span className="text-[11px] font-sans text-slate-400">ج.م</span>
+            <span className="text-[11px] font-sans text-slate-500 dark:text-slate-400">ج.م</span>
           </div>
         </div>
       </div>

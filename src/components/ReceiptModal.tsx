@@ -289,7 +289,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               {/* Base Amount */}
               <div className="flex items-center justify-between">
                 <span className="text-slate-700 font-bold text-[10px] sm:text-[10.5px]">
-                  {isReceive ? 'المبلغ المستلم الأساسي:' : 'مبلغ التحويل الأساسي:'}
+                  {isReceive ? 'المبلغ المستلم:' : 'مبلغ التحويل:'}
                 </span>
                 <div className="text-left font-black font-mono text-slate-900 text-xs sm:text-[13px]">
                   <span dir="ltr">{formatAmount(transfer.amount)}</span>
@@ -300,7 +300,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               {/* Provider Commission if present */}
               {transfer.commission !== undefined && transfer.commission > 0 && (
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-700 font-bold text-[10px] sm:text-[10.5px]">عمولة التحويل (المشغل):</span>
+                  <span className="text-slate-700 font-bold text-[10px] sm:text-[10.5px]">عمولة التحويل:</span>
                   <div className="text-left font-bold font-mono text-emerald-600 text-xs sm:text-[13px]">
                     <span dir="ltr">+{formatAmount(transfer.commission)}</span>
                     <span className="text-[9.5px] text-slate-500 font-sans mr-0.5">ج.م</span>
@@ -311,7 +311,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               {/* Service Fee */}
               <div className="flex items-center justify-between">
                 <span className="text-slate-700 font-bold text-[10px] sm:text-[10.5px]">
-                  {isReceive ? 'عمولة الاستلام والخدمة:' : 'رسوم التحويل:'}
+                  {isReceive ? 'عمولة الاستلام:' : 'رسوم التحويل:'}
                 </span>
                 <div className="text-left font-bold font-mono text-emerald-600 text-xs sm:text-[13px]">
                   <span dir="ltr">+{formatAmount(transfer.fee)}</span>
@@ -326,7 +326,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
               <div className="flex items-center justify-between pt-0.5">
                 <div>
                   <span className="font-black text-xs sm:text-[12.5px] text-slate-900 block leading-tight">
-                    {isReceive ? 'إجمالي المبلغ المودع في الرصيد:' : 'الإجمالي النهائي المطلوب:'}
+                    {isReceive ? 'إجمالي المبلغ:' : 'الإجمالي المطلوب:'}
                   </span>
                   <span className="text-[8.5px] text-slate-400 font-normal block mt-0.5">
                     شامل كافة الرسوم والضرائب المعتمدة
@@ -334,7 +334,9 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                 </div>
                 <div className="text-left">
                   <span className="font-black font-mono text-emerald-700 text-sm sm:text-base block tracking-tight leading-tight" dir="ltr">
-                    {formatAmount(transfer.totalAmount || (transfer.amount + (transfer.fee || 0)))}
+                    {formatAmount(
+                      Number(transfer.amount || 0) + Number(transfer.fee || 0)
+                    )}
                     <span className="text-[11px] font-sans mr-0.5">ج.م</span>
                   </span>
                   <span className="text-[8.5px] text-emerald-600 font-bold block text-left mt-0.5">
@@ -342,19 +344,6 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
                   </span>
                 </div>
               </div>
-
-              {/* Available Balance after transaction */}
-              {transfer.balanceAfter !== undefined && transfer.balanceAfter !== null && (
-                <>
-                  <div className="border-t border-dashed border-emerald-200/80 my-0.5" />
-                  <div className="flex items-center justify-between pt-0.5 text-[10.5px]">
-                    <span className="text-slate-600 font-bold">الرصيد المتاح بعد المعاملة:</span>
-                    <span className="font-mono font-bold text-emerald-700">
-                      {formatAmount(transfer.balanceAfter)} ج.م
-                    </span>
-                  </div>
-                </>
-              )}
             </div>
 
             {/* 3. Footer: Official Verification & QR Code */}

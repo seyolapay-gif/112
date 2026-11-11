@@ -908,9 +908,11 @@ export const ReconciliationView: React.FC<ReconciliationViewProps> = ({ onBackTo
                     </label>
                     <input
                       type="date"
+                      lang="en"
+                      dir="ltr"
                       value={singleDate}
                       onChange={(e) => setSingleDate(e.target.value)}
-                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs font-mono font-bold focus:outline-none focus:border-emerald-500"
+                      className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs font-mono font-bold focus:outline-none focus:border-emerald-500 text-center tracking-wider"
                     />
                   </div>
                 ) : (
@@ -921,12 +923,14 @@ export const ReconciliationView: React.FC<ReconciliationViewProps> = ({ onBackTo
                       </label>
                       <input
                         type="date"
+                        lang="en"
+                        dir="ltr"
                         value={startDate}
                         onChange={(e) => {
                           setStartDate(e.target.value);
                           validateDates(e.target.value, endDate);
                         }}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs font-mono font-bold focus:outline-none focus:border-emerald-500"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs font-mono font-bold focus:outline-none focus:border-emerald-500 text-center tracking-wider"
                       />
                     </div>
                     <div>
@@ -935,12 +939,14 @@ export const ReconciliationView: React.FC<ReconciliationViewProps> = ({ onBackTo
                       </label>
                       <input
                         type="date"
+                        lang="en"
+                        dir="ltr"
                         value={endDate}
                         onChange={(e) => {
                           setEndDate(e.target.value);
                           validateDates(startDate, e.target.value);
                         }}
-                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs font-mono font-bold focus:outline-none focus:border-emerald-500"
+                        className="w-full px-3.5 py-2.5 rounded-xl bg-slate-950 border border-slate-800 text-white text-xs font-mono font-bold focus:outline-none focus:border-emerald-500 text-center tracking-wider"
                       />
                     </div>
                   </>

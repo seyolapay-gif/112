@@ -881,37 +881,94 @@ module.exports = function registerApiRoutes(app, dataDir) {
   app.post('/api/transfers', authMiddleware, (req, res) => {
     const body = req.body || {};
     const amt = Number(body.amount);
+    const comm = Math.max(0, Number(body.commission) || 0);
+    const fee = Math.max(0, Number(body.fee) || 0);
+    const lineDeduction = amt + comm;
+
     if (isNaN(amt) || amt <= 0) {
-      return res.status(400).json({ error: 'المبلغ غير صالح' });
+      return res.status(400).json({ error: 'المبلغ غير صالح، يجب أن يكون أكبر من صفر' });
     }
 
     const sourceLine = (db.cashLines || []).find(l => l.id === body.sourceLineId);
-    if (body.transferType !== 'receive_money' && sourceLine) {
-      sourceLine.balance = Math.max(0, (sourceLine.balance || 0) - amt);
+    if (!sourceLine) {
+      return res.status(400).json({ error: 'الخط أو المحفظة المختارة غير موجودة' });
+    }
+
+    const isReceiving = body.transferType === 'receive_money';
+
+    if (!isReceiving) {
+      // 1. Strict Zero-Balance Check
+      if (sourceLine.balance <= 0) {
+        return res.status(400).json({
+          error: 'لا يمكن إتمام عملية التحويل: رصيد الخط الحالي 0 ج.م، يرجى شحن وتغذية رصيد الخط أولاً.',
+        });
+      }
+
+      if (sourceLine.balance < lineDeduction) {
+        return res.status(400).json({
+          error: `الرصيد المتاح في الخط (${sourceLine.balance.toLocaleString()} ج.م) غير كافٍ لتنفيذ تحويل بقيمة ${lineDeduction.toLocaleString()} ج.م (شامل عمولة التحويل).`,
+        });
+      }
+
+      // 2. Strict Limit Check
+      const todayStr = new Date().toISOString().slice(0, 10);
+      const monthStr = new Date().toISOString().slice(0, 7);
+      let todayUsed = 0;
+      let monthUsed = 0;
+      (db.transfers || []).forEach(t => {
+        if (t.sourceLineId === sourceLine.id && t.status === 'completed' && t.transferType !== 'receive_money') {
+          if ((t.timestamp || '').slice(0, 10) === todayStr) todayUsed += (t.amount || 0);
+          if ((t.timestamp || '').slice(0, 7) === monthStr) monthUsed += (t.amount || 0);
+        }
+      });
+
+      if (todayUsed + amt > sourceLine.dailyLimit) {
+        const remainingDaily = Math.max(0, sourceLine.dailyLimit - todayUsed);
+        return res.status(400).json({
+          error: `لا يمكن إتمام التحويل: تم تجاوز الحد الأقصى اليومي لهذا الخط! المبلغ المتاح إرساله اليوم هو فقط: ${remainingDaily.toLocaleString()} ج.م (من أصل حد يومي ${sourceLine.dailyLimit.toLocaleString()} ج.م)`,
+          limitExceeded: 'daily',
+          remaining: remainingDaily,
+        });
+      }
+
+      if (monthUsed + amt > sourceLine.monthlyLimit) {
+        const remainingMonthly = Math.max(0, sourceLine.monthlyLimit - monthUsed);
+        return res.status(400).json({
+          error: `لا يمكن إتمام التحويل: تم تجاوز الحد الأقصى الشهري لهذا الخط! المبلغ المتاح إرساله لهذا الشهر هو فقط: ${remainingMonthly.toLocaleString()} ج.م (من أصل حد شهري ${sourceLine.monthlyLimit.toLocaleString()} ج.م)`,
+          limitExceeded: 'monthly',
+          remaining: remainingMonthly,
+        });
+      }
+
+      sourceLine.balance = Math.max(0, sourceLine.balance - lineDeduction);
       sourceLine.updatedAt = new Date().toISOString();
-    } else if (body.transferType === 'receive_money' && sourceLine) {
+    } else {
       sourceLine.balance = (sourceLine.balance || 0) + amt;
       sourceLine.updatedAt = new Date().toISOString();
     }
+
+    const calculatedProfit = isReceiving ? fee : (fee - comm);
 
     const now = new Date();
     const datePrefix = now.toISOString().slice(0, 10).replace(/-/g, '');
     const newTx = {
       id: `tx_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-      referenceNumber: `TRX${datePrefix}${Math.floor(1000 + Math.random() * 9000)}`,
+      referenceNumber: isReceiving ? `RCV${datePrefix}${Math.floor(1000 + Math.random() * 9000)}` : `TRX${datePrefix}${Math.floor(1000 + Math.random() * 9000)}`,
       timestamp: now.toISOString(),
       transferType: body.transferType || 'cash_wallet',
       sourceLineId: body.sourceLineId,
-      sourceLineName: sourceLine ? sourceLine.name : (body.sourceLineName || ''),
-      sourceNumber: sourceLine ? sourceLine.phoneNumber : (body.sourceNumber || ''),
+      sourceLineName: sourceLine.name,
+      sourceNumber: sourceLine.phoneNumber,
       recipientType: body.recipientType || 'wallet',
       recipientNumber: body.recipientNumber || '',
-      recipientName: body.recipientName || 'عميل نقدي',
+      recipientName: body.recipientName || (isReceiving ? 'عميل مودع' : 'عميل نقدي'),
       destinationBankOrWallet: body.destinationBankOrWallet || 'فودافون كاش',
       amount: amt,
-      fee: Number(body.fee) || 0,
-      totalAmount: amt + (Number(body.fee) || 0),
-      balanceAfter: sourceLine ? sourceLine.balance : undefined,
+      commission: comm,
+      fee: fee,
+      totalAmount: isReceiving ? amt : lineDeduction,
+      profit: calculatedProfit,
+      balanceAfter: sourceLine.balance,
       notes: body.notes || '',
       operatorId: req.user.id,
       operatorName: req.user.fullName,
@@ -1069,6 +1126,26 @@ module.exports = function registerApiRoutes(app, dataDir) {
     const tx = (db.transfers || []).find(t => t.id === id);
     if (!tx) return res.status(404).json({ error: 'العملية غير موجودة' });
     tx.status = status;
+    tx.updatedAt = new Date().toISOString();
+    saveDatabaseAsync();
+    res.json(tx);
+  });
+
+  app.put('/api/transfers/:id/profit', authMiddleware, (req, res) => {
+    const { id } = req.params;
+    const { profitOverride, notes } = req.body || {};
+    const tx = (db.transfers || []).find(t => t.id === id || t.referenceNumber === id);
+    if (!tx) return res.status(404).json({ error: 'العملية غير موجودة' });
+
+    const newProfit = Number(profitOverride);
+    if (isNaN(newProfit)) {
+      return res.status(400).json({ error: 'قيمة الربح المدخلة غير صحيحة' });
+    }
+
+    tx.profitOverride = newProfit;
+    if (notes !== undefined) {
+      tx.customProfitNotes = String(notes);
+    }
     tx.updatedAt = new Date().toISOString();
     saveDatabaseAsync();
     res.json(tx);

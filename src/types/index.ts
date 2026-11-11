@@ -88,6 +88,9 @@ export interface Transfer {
   fee: number;
   totalAmount: number;
   balanceAfter?: number; // المبلغ المتاح بعد التحويل
+  profit?: number; // صافي الربح المحسوب للعملية
+  profitOverride?: number; // تعديل الربح المباشر من الأدمن
+  customProfitNotes?: string; // ملاحظات تعديل الربح
   notes: string;
   operatorId: string;
   operatorName: string;

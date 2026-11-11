@@ -32,7 +32,11 @@ import {
   RotateCcw,
   Sparkles,
   Building2,
-  Globe
+  Globe,
+  ArrowRight,
+  ArrowLeft,
+  Layers,
+  ChevronLeft
 } from 'lucide-react';
 
 interface CashLinesViewProps {
@@ -53,6 +57,10 @@ export const CashLinesView: React.FC<CashLinesViewProps> = ({
   const [searchQuery, setSearchQuery] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<'all' | 'vodafone' | 'orange' | 'etisalat' | 'we' | 'banks'>('all');
+
+  // Company Overview Mode: null = Companies Cards Overview, ProviderType = Filtered to specific company lines, 'all' = All lines flat
+  const [selectedCompany, setSelectedCompany] = useState<ProviderType | 'all' | null>(null);
+  const [companyCategoryFilter, setCompanyCategoryFilter] = useState<'all' | 'telecom' | 'bank' | 'payment'>('all');
 
   // Modal State for Add / Edit
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -132,10 +140,10 @@ export const CashLinesView: React.FC<CashLinesViewProps> = ({
     return () => window.removeEventListener('app:global-refresh', handleGlobalRefresh);
   }, []);
 
-  const openAddModal = () => {
+  const openAddModal = (defaultProvider?: ProviderType) => {
     setEditingLine(null);
     setFormName('');
-    setFormProvider('vodafone');
+    setFormProvider(defaultProvider || (selectedCompany && selectedCompany !== 'all' ? selectedCompany : 'vodafone'));
     setFormPhone('');
     setFormHolder('مؤسسة التيسير للخدمات');
     setFormBalance('50000');
@@ -220,7 +228,44 @@ export const CashLinesView: React.FC<CashLinesViewProps> = ({
     }
   };
 
-  const filteredLines = lines.filter((l) => {
+  // Comprehensive list of Egyptian mobile cash companies and banks
+  const COMPANIES_LIST: {
+    provider: ProviderType;
+    name: string;
+    category: 'telecom' | 'bank' | 'payment';
+    description: string;
+  }[] = [
+    { provider: 'vodafone', name: 'فودافون كاش', category: 'telecom', description: 'محافظ فودافون كاش وخطوط VIP المعتمدة' },
+    { provider: 'etisalat', name: 'اتصالات كاش', category: 'telecom', description: 'محافظ اتصالات كاش My Etisalat' },
+    { provider: 'orange', name: 'أورنج كاش', category: 'telecom', description: 'محافظ أورنج كاش Orange Cash' },
+    { provider: 'we', name: 'وي باي (WE Pay)', category: 'telecom', description: 'محافظ وي باي المصرية للاتصالات' },
+    { provider: 'instapay', name: 'إنستاباي (InstaPay IPN)', category: 'payment', description: 'شبكة المدفوعات اللحظية المصرية' },
+    { provider: 'banque_misr', name: 'بنك مصر', category: 'bank', description: 'حسابات ومحافظ BM Wallet بنك مصر' },
+    { provider: 'nbe', name: 'البنك الأهلي المصري (NBE)', category: 'bank', description: 'محفظة الأهلي فون كاش وحسابات NBE' },
+    { provider: 'banque_du_caire', name: 'بنك القاهرة', category: 'bank', description: 'محفظة قاهرة كاش وحسابات بنك القاهرة' },
+    { provider: 'cib', name: 'البنك التجاري الدولي (CIB)', category: 'bank', description: 'محفظة CIB Smart Wallet وحسابات البنك' },
+    { provider: 'alexbank', name: 'بنك الإسكندرية', category: 'bank', description: 'محفظة بنك الإسكندرية وحسابات البنك' },
+    { provider: 'qnb', name: 'QNB الأهلي', category: 'bank', description: 'محفظة QNB Bebasata وحسابات البنك' },
+    { provider: 'fawry', name: 'شبكة فوري للمدفوعات', category: 'payment', description: 'حسابات ومنافذ فوري باي الصفراء' },
+    { provider: 'other', name: 'حسابات وبنوك أخرى', category: 'bank', description: 'أي خطوط كاش أو حسابات بنكية إضافية' },
+  ];
+
+  const getProviderLines = (p: ProviderType, allLines: CashLine[]) => {
+    if (p === 'vodafone') {
+      return allLines.filter((l) => l.provider === 'vodafone' || l.provider === 'vodafone_vip');
+    }
+    return allLines.filter((l) => l.provider === p);
+  };
+
+  const activeCompaniesCount = COMPANIES_LIST.filter(
+    (c) => getProviderLines(c.provider, lines).length > 0
+  ).length;
+
+  const displayedLines = (selectedCompany && selectedCompany !== 'all')
+    ? getProviderLines(selectedCompany, lines)
+    : lines;
+
+  const filteredLines = displayedLines.filter((l) => {
     const matchesSearch =
       l.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       l.phoneNumber.includes(searchQuery) ||
@@ -228,23 +273,34 @@ export const CashLinesView: React.FC<CashLinesViewProps> = ({
 
     if (!matchesSearch) return false;
 
-    if (selectedCategory === 'vodafone') {
-      return l.provider === 'vodafone';
-    }
-    if (selectedCategory === 'orange') {
-      return l.provider === 'orange';
-    }
-    if (selectedCategory === 'etisalat') {
-      return l.provider === 'etisalat';
-    }
-    if (selectedCategory === 'we') {
-      return l.provider === 'we';
-    }
-    if (selectedCategory === 'banks') {
-      return l.provider !== 'vodafone' && l.provider !== 'orange' && l.provider !== 'etisalat' && l.provider !== 'we';
+    if (selectedCompany === 'all' && selectedCategory !== 'all') {
+      if (selectedCategory === 'vodafone') return l.provider === 'vodafone' || l.provider === 'vodafone_vip';
+      if (selectedCategory === 'orange') return l.provider === 'orange';
+      if (selectedCategory === 'etisalat') return l.provider === 'etisalat';
+      if (selectedCategory === 'we') return l.provider === 'we';
+      if (selectedCategory === 'banks') return l.provider !== 'vodafone' && l.provider !== 'orange' && l.provider !== 'etisalat' && l.provider !== 'we';
     }
 
     return true;
+  });
+
+  const filteredCompanies = COMPANIES_LIST.filter((comp) => {
+    const compLines = getProviderLines(comp.provider, lines);
+    const matchesCategory =
+      companyCategoryFilter === 'all' || comp.category === companyCategoryFilter;
+    if (!matchesCategory) return false;
+
+    if (!searchQuery.trim()) return true;
+
+    const q = searchQuery.toLowerCase().trim();
+    const nameMatch = comp.name.toLowerCase().includes(q) || comp.description.toLowerCase().includes(q);
+    const linesMatch = compLines.some(
+      (l) =>
+        l.phoneNumber.includes(q) ||
+        l.accountHolder.toLowerCase().includes(q) ||
+        l.name.toLowerCase().includes(q)
+    );
+    return nameMatch || linesMatch;
   });
 
   // Inter-line transfer computed variables and actions
@@ -383,479 +439,836 @@ export const CashLinesView: React.FC<CashLinesViewProps> = ({
   return (
     <div className="space-y-3 pb-8 font-sans selection:bg-emerald-500 selection:text-white" dir="rtl">
       
-      {/* Top Header - Compact & Balanced */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-900/60 p-3.5 sm:p-4 rounded-2xl border border-slate-800">
-        <div>
-          <h1 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
-            إدارة خطوط الكاش والمحافظ
-            <span className="text-xs px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 font-mono font-semibold">
-              {lines.length} خط مسجل
-            </span>
-          </h1>
-          <p className="text-[11px] text-slate-400 mt-0.5">
-            متابعة السيولة النقدية، الحدود اليومية والشهرية، وتنفيذ التحويلات السريعة لكل محفظة
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2.5 w-full sm:w-auto">
-          {canManageLines && (
-            <button
-              onClick={openAddModal}
-              className="flex-1 sm:flex-none px-4 py-2 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold rounded-xl shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition duration-200 cursor-pointer text-xs sm:text-sm"
-            >
-              <Plus className="w-4 h-4" />
-              <span>إضافة خط أو محفظة جديدة</span>
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Category Tabs - Compact & Tight */}
-      <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
-        <button
-          type="button"
-          onClick={() => setSelectedCategory('all')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
-            selectedCategory === 'all'
-              ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20'
-              : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
-          }`}
-        >
-          <span>الكل</span>
-          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/20 font-mono font-normal">
-            {lines.length}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setSelectedCategory('vodafone')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
-            selectedCategory === 'vodafone'
-              ? 'bg-red-600 text-white shadow-sm shadow-red-600/20'
-              : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
-          }`}
-        >
-          <span className="w-2 h-2 rounded-full bg-red-500" />
-          <span>فودافون كاش</span>
-          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/20 font-mono font-normal">
-            {lines.filter((l) => l.provider === 'vodafone').length}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setSelectedCategory('orange')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
-            selectedCategory === 'orange'
-              ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/20'
-              : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
-          }`}
-        >
-          <span className="w-2 h-2 rounded-full bg-orange-500" />
-          <span>أورنج كاش</span>
-          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/20 font-mono font-normal">
-            {lines.filter((l) => l.provider === 'orange').length}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setSelectedCategory('etisalat')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
-            selectedCategory === 'etisalat'
-              ? 'bg-lime-600 text-white shadow-sm shadow-lime-600/20'
-              : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
-          }`}
-        >
-          <span className="w-2 h-2 rounded-full bg-lime-500" />
-          <span>اتصالات كاش</span>
-          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/20 font-mono font-normal">
-            {lines.filter((l) => l.provider === 'etisalat').length}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setSelectedCategory('we')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
-            selectedCategory === 'we'
-              ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/20'
-              : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
-          }`}
-        >
-          <span className="w-2 h-2 rounded-full bg-purple-500" />
-          <span>وي باي</span>
-          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/20 font-mono font-normal">
-            {lines.filter((l) => l.provider === 'we').length}
-          </span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setSelectedCategory('banks')}
-          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
-            selectedCategory === 'banks'
-              ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/20'
-              : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
-          }`}
-        >
-          <span className="w-2 h-2 rounded-full bg-blue-500" />
-          <span>إنستاباي والبنوك</span>
-          <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/20 font-mono font-normal">
-            {lines.filter((l) => l.provider !== 'vodafone' && l.provider !== 'orange' && l.provider !== 'etisalat' && l.provider !== 'we').length}
-          </span>
-        </button>
-      </div>
-
-      {/* Search Bar - Sleek, Flush & Compact (Zero wasted space) */}
-      <div className="relative w-full">
-        <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400">
-          <Search className="w-4 h-4" />
-        </div>
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="بحث برقم الهاتف، اسم الخط، أو المالك..."
-          className="w-full pr-10 pl-3 py-2 bg-slate-900/90 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 leading-normal shadow-xs"
-        />
-      </div>
-
-      {/* Cash Line Cards Grid */}
-      {isLoading ? (
-        <div className="flex justify-center items-center py-20 text-slate-400">
-          <RefreshCw className="w-6 h-6 animate-spin text-emerald-500 ml-2" />
-          <span>جاري تحميل بيانات الخطوط...</span>
-        </div>
-      ) : filteredLines.length === 0 ? (
-        <div className="p-12 text-center rounded-3xl bg-slate-900/40 border border-slate-800 text-slate-400">
-          <AlertCircle className="w-10 h-10 mx-auto mb-2 text-slate-500" />
-          <p className="font-bold text-white">لم يتم العثور على أي خطوط تطابق البحث</p>
-          <p className="text-xs text-slate-500 mt-1">تأكد من رقم الهاتف أو اختر تصفية أخرى</p>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredLines.map((line) => {
-            const todayUsed = line.todayUsed || 0;
-            const remainingDaily = line.remainingDaily !== undefined ? line.remainingDaily : Math.max(0, line.dailyLimit - todayUsed);
-            const dailyPercent = line.dailyLimit > 0 ? Math.min(100, Math.round((todayUsed / line.dailyLimit) * 100)) : 0;
-
-            const monthUsed = line.monthUsed || 0;
-            const remainingMonthly = line.remainingMonthly !== undefined ? line.remainingMonthly : Math.max(0, line.monthlyLimit - monthUsed);
-            const monthlyPercent = line.monthlyLimit > 0 ? Math.min(100, Math.round((monthUsed / line.monthlyLimit) * 100)) : 0;
-
-            const isHighDaily = dailyPercent >= line.warningThresholdPercent;
-            const isHighMonthly = monthlyPercent >= line.warningThresholdPercent;
-
-            return (
-              <div
-                key={line.id}
-                onClick={() => onViewLineHistory(line.id)}
-                className="rounded-3xl transition-all duration-200 shadow-lg flex flex-col justify-between overflow-hidden group cursor-pointer bg-slate-900/80 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-900/95 hover:shadow-emerald-500/10"
-                title="انقر لعرض تفاصيل وسجل هذا الخط"
-              >
-                {/* Card Top: Provider Icon & Provider Name + Account Holder on Right, Status Badge & Phone Number on Left */}
-                <div className="p-4 sm:p-5 border-b bg-slate-950/60 border-slate-800/80">
-                  <div className="flex items-start justify-between gap-3">
-                    {/* Right: Icon + Provider Name & Account Holder Name */}
-                    <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
-                      <div className="shrink-0 w-11 h-11 sm:w-12 sm:h-12 rounded-2xl overflow-hidden shadow-md flex items-center justify-center bg-slate-900 border border-slate-800">
-                        <ProviderBadge provider={line.provider} size="md" showLabel={false} />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <span className="text-[10px] sm:text-[11px] text-slate-400 block font-medium truncate">
-                          {PROVIDER_CONFIG[line.provider]?.name || 'مزود الخدمة'}
-                        </span>
-                        <h3 
-                          className="font-bold text-white text-xs sm:text-sm leading-normal group-hover:text-emerald-400 transition truncate"
-                          title={line.accountHolder || line.name}
-                        >
-                          {line.accountHolder || line.name}
-                        </h3>
-                      </div>
-                    </div>
-
-                    {/* Left: Status Badge on Top, Phone/Account Number below it */}
-                    <div className="shrink-0 flex flex-col items-end gap-1.5">
-                      <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                        {line.status === 'active' && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 whitespace-nowrap shrink-0 shadow-sm shadow-emerald-950/40">
-                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                            <span className="whitespace-nowrap">نشط</span>
-                          </span>
-                        )}
-                        {line.status === 'paused' && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 whitespace-nowrap">
-                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
-                            <span>متوقف</span>
-                          </span>
-                        )}
-                        {line.status === 'suspended' && (
-                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30 whitespace-nowrap">
-                            <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />
-                            <span>موقوف</span>
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Phone / Account Number below status badge */}
-                      <span className="text-sm sm:text-base font-mono font-black text-emerald-400 tracking-wider mt-0.5" dir="ltr">
-                        {line.phoneNumber}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card Middle: Liquidity Balance & Limit Progress */}
-                <div className="p-4 sm:p-5 space-y-3.5">
-                  {/* Liquidity / Balance Box */}
-                  <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-950/90 border border-slate-800 flex items-center justify-between gap-3">
-                    <div className="min-w-0">
-                      <span className="text-[11px] text-slate-400 flex items-center gap-1.5 font-medium">
-                        <Coins className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                        السيولة المتاحة حالياً
-                      </span>
-                      <span className="text-lg sm:text-xl font-mono font-black text-white mt-0.5 block truncate">
-                        {formatAmount(line.balance)} <span className="text-xs font-sans text-slate-400">ج.م</span>
-                      </span>
-                    </div>
-                    <div className="text-left text-xs text-slate-400 font-sans shrink-0 space-y-0.5">
-                      <div className="text-[11px]"><strong className="text-slate-200 font-mono font-bold">{formatCount(line.todayCount || 0)}</strong> عملية اليوم</div>
-                      <div className="text-[10px] text-slate-500"><strong className="text-slate-300 font-mono font-bold">{formatCount(line.monthCount || 0)}</strong> هذا الشهر</div>
-                    </div>
-                  </div>
-
-                  {/* Daily Limit Progress */}
-                  <div className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs font-sans">
-                      <span className="text-slate-400 font-medium">الحد اليومي:</span>
-                      <span className="text-slate-300 text-[11px] sm:text-xs">
-                        مستهلك: <strong className="text-white font-mono">{formatAmount(todayUsed)}</strong> / <span className="font-mono">{formatAmount(line.dailyLimit)}</span> ج.م
-                      </span>
-                    </div>
-                    <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${
-                          dailyPercent >= 90 ? 'bg-rose-500' : dailyPercent >= 80 ? 'bg-amber-500' : 'bg-emerald-500'
-                        }`}
-                        style={{ width: `${Math.min(100, dailyPercent)}%` }}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between text-[11px] font-sans">
-                      <span className={isHighDaily ? 'text-amber-400 font-bold' : 'text-slate-400'}>
-                        نسبة الاستهلاك: <strong className="font-mono">{dailyPercent}%</strong>
-                      </span>
-                      <span className="text-emerald-400 font-semibold">
-                        المتبقي اليوم: <span className="font-mono">{formatAmount(remainingDaily)}</span> ج.م
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Monthly Limit Progress */}
-                  <div className="space-y-1.5 pt-2 border-t border-slate-800/80">
-                    <div className="flex items-center justify-between text-xs font-sans">
-                      <span className="text-slate-400 font-medium">الحد الشهري:</span>
-                      <span className="text-slate-300 text-[11px] sm:text-xs">
-                        مستهلك: <strong className="text-white font-mono">{formatAmount(monthUsed)}</strong> / <span className="font-mono">{formatAmount(line.monthlyLimit)}</span> ج.م
-                      </span>
-                    </div>
-                    <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                      <div
-                        className={`h-full rounded-full transition-all duration-500 ${
-                          monthlyPercent >= 90 ? 'bg-rose-500' : monthlyPercent >= 80 ? 'bg-amber-500' : 'bg-cyan-500'
-                        }`}
-                        style={{ width: `${Math.min(100, monthlyPercent)}%` }}
-                      />
-                    </div>
-                    <div className="flex items-center justify-between text-[11px] font-sans">
-                      <span className={isHighMonthly ? 'text-amber-400 font-bold' : 'text-slate-400'}>
-                        نسبة الاستهلاك: <strong className="font-mono">{monthlyPercent}%</strong>
-                      </span>
-                      <span className="text-cyan-400 font-semibold">
-                        المتبقي هذا الشهر: <span className="font-mono">{formatAmount(remainingMonthly)}</span> ج.م
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Card Actions Bottom: Perfectly organized without any overlapping */}
-                <div className="p-3.5 sm:p-4 bg-slate-950/95 border-t border-slate-800/80 space-y-2.5">
-
-                  {/* Tier 1: Primary Money Operation Buttons */}
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onInitiateTransfer(line.id);
-                      }}
-                      disabled={line.status !== 'active'}
-                      className="w-full h-10 px-3 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 cursor-pointer whitespace-nowrap active:scale-[0.98]"
-                      title="تحويل صادر"
-                    >
-                      <ArrowLeftRight className="w-4 h-4 shrink-0" />
-                      <span>تحويل</span>
-                    </button>
-
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (onInitiateReceive) {
-                          onInitiateReceive(line.id);
-                        } else {
-                          onInitiateTransfer(line.id);
-                        }
-                      }}
-                      disabled={line.status !== 'active'}
-                      className="w-full h-10 px-3 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 shadow-md shadow-blue-600/20 cursor-pointer whitespace-nowrap active:scale-[0.98]"
-                      title="استلام أموال وارد"
-                    >
-                      <ArrowDownLeft className="w-4 h-4 shrink-0" />
-                      <span>استلام</span>
-                    </button>
-                  </div>
-
-                  {/* Tier 2: Secondary Line Tools (History, Edit, Delete) with ample breathing room */}
-                  <div className="flex items-center gap-2 pt-1.5 border-t border-slate-800/60">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onViewLineHistory(line.id);
-                      }}
-                      className="flex-1 h-8 px-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl transition text-[11px] font-semibold cursor-pointer border border-slate-800 flex items-center justify-center gap-1.5 active:scale-[0.98]"
-                      title="سجل تحويلات هذا الخط"
-                    >
-                      <History className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                      <span>سجل العمليات</span>
-                    </button>
-
-                    {canManageLines && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openEditModal(line);
-                        }}
-                        className="w-8 h-8 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white rounded-xl transition text-xs font-semibold cursor-pointer border border-slate-800 flex items-center justify-center shrink-0 active:scale-[0.98]"
-                        title="تعديل بيانات الخط"
-                      >
-                        <Edit3 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-
-                    {user?.role === 'admin' && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteLine(line);
-                        }}
-                        className="w-8 h-8 bg-rose-950/30 hover:bg-rose-900/50 text-rose-400 hover:text-rose-200 border border-rose-500/20 rounded-xl transition text-xs cursor-pointer flex items-center justify-center shrink-0 active:scale-[0.98]"
-                        title="حذف الخط"
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </button>
-                    )}
-                  </div>
-                </div>
-
-              </div>
-            );
-          })}
-
-          {/* بطاقة التحويل بين الخطوط والمحافظ (تظهر كبطاقة مثل باقي البطاقات وعند النقر عليها تفتح التفاصيل) */}
-          <div
-            onClick={() => setIsInterTransferModalOpen(true)}
-            className="rounded-3xl bg-slate-900/80 border border-emerald-500/40 hover:border-emerald-400/80 transition-all duration-200 shadow-xl hover:shadow-emerald-500/10 flex flex-col justify-between overflow-hidden group cursor-pointer"
-          >
-            {/* Card Top: Provider Icon & Title */}
-            <div className="p-6 bg-slate-950/70 border-b border-slate-800/80">
-              <div className="flex items-start justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-slate-950 font-bold shadow-md group-hover:scale-105 transition">
-                    <ArrowLeftRight className="w-6 h-6 stroke-[2.5]" />
-                  </div>
-                  <div>
-                    <span className="text-xs text-emerald-400 block font-bold">
-                      موازنة ونقل السيولة
-                    </span>
-                    <h3 className="font-extrabold text-white text-base leading-normal group-hover:text-emerald-300 transition">
-                      التحويل بين الخطوط والمحافظ
-                    </h3>
-                  </div>
-                </div>
-
-                {/* Status Badge */}
-                <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  متاح فوري
+      {/* ========================================================================= */}
+      {/* 1. OVERVIEW MODE: Company Cards Grid (عرض الشركات والمزودين المعتمدين)     */}
+      {/* ========================================================================= */}
+      {selectedCompany === null && (
+        <div className="space-y-4">
+          {/* Top Header - Companies Overview */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 bg-slate-900/80 p-4 rounded-2xl border border-slate-800 shadow-md">
+            <div>
+              <h1 className="text-lg sm:text-xl font-black text-white flex items-center gap-2">
+                <span>خطوط الكاش والمحافظ البنكية</span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-mono font-bold">
+                  {formatCount(COMPANIES_LIST.length)} شركة وبنك
                 </span>
-              </div>
-
-              {/* Service Details */}
-              <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between">
-                <div>
-                  <span className="text-[10px] text-slate-500 block">نوع العملية:</span>
-                  <span className="text-lg font-mono font-black text-emerald-400 tracking-wider">
-                    تحويل وموازنة
-                  </span>
-                </div>
-                <div className="text-left">
-                  <span className="text-[10px] text-slate-500 block">إجمالي المحافظ:</span>
-                  <span className="text-xs text-slate-300 font-medium block">
-                    {lines.length} خط ومحفظة نشطة
-                  </span>
-                </div>
-              </div>
+              </h1>
+              <p className="text-xs text-slate-400 mt-1">
+                اختر أي شركة أو بنك لعرض خطوطه ومحافظه وإدارتها المستقلة، أو أضف خطوطاً ومحافظ جديدة
+              </p>
             </div>
 
-            {/* Card Middle: Overview & Liquidity Info */}
-            <div className="p-6 space-y-4">
-              <div className="p-3.5 rounded-2xl bg-slate-950/90 border border-slate-800 flex items-center justify-between">
-                <div>
-                  <span className="text-xs text-slate-400 flex items-center gap-1.5 font-medium">
-                    <Coins className="w-3.5 h-3.5 text-emerald-400" />
-                    إجمالي السيولة المتاحة
-                  </span>
-                  <span className="text-xl font-mono font-black text-white mt-1 block">
-                    {formatAmount(totalLiquidity)} <span className="text-xs font-sans text-slate-400">ج.م</span>
-                  </span>
-                </div>
-                <div className="text-left text-xs text-slate-400 font-sans">
-                  <div className="text-emerald-400 font-bold font-mono">تغذية وموازنة</div>
-                  <div className="text-[11px] text-slate-500">لحظية ومباشرة</div>
-                </div>
-              </div>
+            <div className="flex items-center gap-2 w-full sm:w-auto flex-wrap sm:flex-nowrap">
+              {canManageLines && (
+                <button
+                  type="button"
+                  onClick={() => openAddModal()}
+                  className="flex-1 sm:flex-none px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold rounded-xl shadow-md shadow-emerald-600/20 flex items-center justify-center gap-1.5 transition text-xs sm:text-sm cursor-pointer whitespace-nowrap active:scale-[0.98]"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>إضافة خط أو محفظة</span>
+                </button>
+              )}
 
-              <div className="space-y-2 p-3 bg-slate-950/50 rounded-2xl border border-slate-800/60 text-[11px] text-slate-400">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span>عزل المحافظ وإخفاء البنوك وإنستاباي لمحفظة الكاش</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span>تحديد وخصم رسوم التحويل من المحفظة المصدر</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                  <span>تحديث فوري لأرصدة الطرفين مع تسجيل التدقيق</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Card Bottom: Open Details Button */}
-            <div className="p-3.5 sm:p-4 bg-slate-950/95 border-t border-slate-800/80">
               <button
                 type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsInterTransferModalOpen(true);
-                }}
-                className="w-full h-11 px-4 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white text-xs sm:text-sm font-bold rounded-2xl transition flex items-center justify-center gap-2 shadow-md shadow-emerald-600/20 cursor-pointer whitespace-nowrap active:scale-[0.98]"
+                onClick={() => setIsInterTransferModalOpen(true)}
+                className="flex-1 sm:flex-none px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-emerald-400 border border-slate-700 hover:border-emerald-500/40 rounded-xl font-bold flex items-center justify-center gap-1.5 transition text-xs sm:text-sm cursor-pointer whitespace-nowrap active:scale-[0.98]"
+                title="موازنة ونقل السيولة بين الخطوط"
               >
-                <ArrowLeftRight className="w-4 h-4 shrink-0" />
-                <span>الدخول لتفاصيل التحويل بين الخطوط</span>
+                <ArrowLeftRight className="w-4 h-4" />
+                <span>موازنة السيولة</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCompany('all');
+                  setSelectedCategory('all');
+                  setSearchQuery('');
+                }}
+                className="flex-1 sm:flex-none px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 rounded-xl font-bold flex items-center justify-center gap-1.5 transition text-xs sm:text-sm cursor-pointer whitespace-nowrap active:scale-[0.98]"
+                title="عرض كافة الخطوط معاً في صفحة واحدة"
+              >
+                <Layers className="w-4 h-4" />
+                <span>عرض الكل</span>
               </button>
             </div>
           </div>
+
+          {/* Top 3 Stat Cards - Universal System Metrics (في أعلى البطاقات إجمالي الحسابات المسجلة) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            {/* Card 1: إجمالي الحسابات المسجلة على البرنامج */}
+            <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-md flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                <Wallet className="w-6 h-6" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="text-xs text-slate-400 block font-medium">
+                  إجمالي الحسابات المسجلة على البرنامج
+                </span>
+                <div className="flex items-baseline gap-1.5 mt-0.5">
+                  <span className="text-2xl font-mono font-black text-white">
+                    {formatCount(lines.length)}
+                  </span>
+                  <span className="text-xs text-emerald-400 font-bold">
+                    حساب ومحفظة
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                  موزعة على {formatCount(activeCompaniesCount)} شركة وبنك معتمد
+                </p>
+              </div>
+            </div>
+
+            {/* Card 2: إجمالي السيولة النقدية المتاحة */}
+            <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-md flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-teal-500/10 border border-teal-500/20 text-teal-400 flex items-center justify-center shrink-0">
+                <Coins className="w-6 h-6" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="text-xs text-slate-400 block font-medium">
+                  إجمالي السيولة النقدية المتاحة
+                </span>
+                <div className="flex items-baseline gap-1.5 mt-0.5">
+                  <span className="text-2xl font-mono font-black text-white">
+                    {formatAmount(totalLiquidity)}
+                  </span>
+                  <span className="text-xs text-teal-400 font-bold">
+                    ج.م
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                  رصيد حي متاح للتحويل والاستلام الفوري
+                </p>
+              </div>
+            </div>
+
+            {/* Card 3: الشركات والبنوك المدعومة */}
+            <div className="p-4 rounded-2xl bg-slate-900/90 border border-slate-800 shadow-md flex items-center gap-3.5">
+              <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0">
+                <Building2 className="w-6 h-6" />
+              </div>
+              <div className="min-w-0 flex-1">
+                <span className="text-xs text-slate-400 block font-medium">
+                  الشركات والمزودين المعتمدين
+                </span>
+                <div className="flex items-baseline gap-1.5 mt-0.5">
+                  <span className="text-2xl font-mono font-black text-white">
+                    {formatCount(activeCompaniesCount)}
+                  </span>
+                  <span className="text-xs text-cyan-400 font-bold">
+                    من أصل {formatCount(COMPANIES_LIST.length)} مزود
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 mt-0.5 truncate">
+                  فودافون، اتصالات، أورنج، وي، إنستاباي، والبنوك
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Category Filter Tabs & Search Bar */}
+          <div className="space-y-2">
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+              <button
+                type="button"
+                onClick={() => setCompanyCategoryFilter('all')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                  companyCategoryFilter === 'all'
+                    ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20'
+                    : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+                }`}
+              >
+                <span>كافة الشركات والبنوك</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/20 font-mono font-normal">
+                  {formatCount(COMPANIES_LIST.length)}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCompanyCategoryFilter('telecom')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                  companyCategoryFilter === 'telecom'
+                    ? 'bg-red-600 text-white shadow-sm shadow-red-600/20'
+                    : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-red-400" />
+                <span>شركات الاتصالات الأربعة (كاش)</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/20 font-mono font-normal">
+                  {formatCount(COMPANIES_LIST.filter((c) => c.category === 'telecom').length)}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCompanyCategoryFilter('bank')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                  companyCategoryFilter === 'bank'
+                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/20'
+                    : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-blue-400" />
+                <span>البنوك المصرية المعتمدة</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/20 font-mono font-normal">
+                  {formatCount(COMPANIES_LIST.filter((c) => c.category === 'bank').length)}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setCompanyCategoryFilter('payment')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                  companyCategoryFilter === 'payment'
+                    ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/20'
+                    : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-purple-400" />
+                <span>إنستاباي وشبكات الدفع</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/20 font-mono font-normal">
+                  {formatCount(COMPANIES_LIST.filter((c) => c.category === 'payment').length)}
+                </span>
+              </button>
+            </div>
+
+            {/* Search Bar for Companies or Lines */}
+            <div className="relative w-full">
+              <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400">
+                <Search className="w-4 h-4" />
+              </div>
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="بحث باسم الشركة، رقم الهاتف، أو اسم الحساب..."
+                className="w-full pr-10 pl-3 py-2 bg-slate-900/90 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 leading-normal shadow-xs"
+              />
+            </div>
+          </div>
+
+          {/* Companies Cards Grid - Uniform Size & Structure (بطاقات بنفس الحجم لكل شركة كاش أو بنك) */}
+          {isLoading ? (
+            <div className="flex justify-center items-center py-20 text-slate-400">
+              <RefreshCw className="w-6 h-6 animate-spin text-emerald-500 ml-2" />
+              <span>جاري تحميل بيانات الشركات والخطوط...</span>
+            </div>
+          ) : filteredCompanies.length === 0 ? (
+            <div className="p-12 text-center rounded-3xl bg-slate-900/40 border border-slate-800 text-slate-400">
+              <AlertCircle className="w-10 h-10 mx-auto mb-2 text-slate-500" />
+              <p className="font-bold text-white">لم يتم العثور على أي شركة أو محفظة تطابق البحث</p>
+              <p className="text-xs text-slate-500 mt-1">جرب البحث بكلمة أخرى أو اختر تصفية مختلفة</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {filteredCompanies.map((comp) => {
+                const compLines = getProviderLines(comp.provider, lines);
+                const linesCount = compLines.length;
+                const compBalance = compLines.reduce((s, l) => s + (l.balance || 0), 0);
+                const config = PROVIDER_CONFIG[comp.provider] || PROVIDER_CONFIG.other;
+                const Icon = config.icon;
+
+                return (
+                  <div
+                    key={comp.provider}
+                    onClick={() => {
+                      setSelectedCompany(comp.provider);
+                      setSearchQuery('');
+                    }}
+                    className="group relative rounded-3xl p-4 sm:p-5 transition-all duration-200 cursor-pointer flex flex-col justify-between overflow-hidden bg-slate-900/85 hover:bg-slate-900 border border-slate-800 hover:border-emerald-500/60 shadow-lg hover:shadow-xl hover:shadow-emerald-950/30 hover:-translate-y-0.5 active:scale-[0.99] min-h-[180px]"
+                    title={`انقر لعرض خطوط ومحافظ ${comp.name}`}
+                  >
+                    {/* Top: Logo + Name + Status */}
+                    <div>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-center gap-3 min-w-0 flex-1">
+                          {/* Official Company Logo */}
+                          <div className="w-12 h-12 rounded-2xl overflow-hidden shrink-0 flex items-center justify-center p-1 bg-slate-950 border border-slate-800/90 shadow-md group-hover:scale-105 transition-transform">
+                            <Icon className="w-full h-full object-contain" />
+                          </div>
+
+                          {/* Company Name & Description */}
+                          <div className="min-w-0 flex-1">
+                            <h3 className="font-extrabold text-sm sm:text-base text-white group-hover:text-emerald-400 transition leading-snug truncate">
+                              {comp.name}
+                            </h3>
+                            <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+                              {comp.description}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Status Badge */}
+                        <div className="shrink-0">
+                          {linesCount > 0 ? (
+                            <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 whitespace-nowrap shadow-sm shadow-emerald-950/40">
+                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                              <span>{formatCount(linesCount)} {linesCount === 1 ? 'محفظة' : 'محافظ'}</span>
+                            </span>
+                          ) : (
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-800 text-slate-400 border border-slate-700/60 whitespace-nowrap">
+                              غير مسجل
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Middle: Accounts Count & Liquidity Box (وأسفل منها رقم أو عدد الحسابات المسجلة لتلك الشركة) */}
+                      <div className="my-3.5 p-3 rounded-2xl bg-slate-950/80 border border-slate-800/90 flex items-center justify-between gap-2">
+                        <div>
+                          <span className="text-[10px] sm:text-[11px] text-slate-400 block font-medium">
+                            الحسابات المسجلة:
+                          </span>
+                          <div className="flex items-baseline gap-1 mt-0.5">
+                            <span className="text-xl sm:text-2xl font-mono font-black text-emerald-400">
+                              {formatCount(linesCount)}
+                            </span>
+                            <span className="text-[11px] text-slate-400 font-sans">
+                              {linesCount === 1 ? 'حساب' : 'حسابات'}
+                            </span>
+                          </div>
+                        </div>
+
+                        <div className="text-left border-r border-slate-800/80 pr-3">
+                          <span className="text-[10px] sm:text-[11px] text-slate-400 block font-medium">
+                            إجمالي السيولة:
+                          </span>
+                          <div className="flex items-baseline gap-1 mt-0.5 justify-end">
+                            <span className="text-base sm:text-lg font-mono font-black text-white">
+                              {formatAmount(compBalance)}
+                            </span>
+                            <span className="text-[10px] text-slate-400 font-sans">
+                              ج.م
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Bottom: Action link & arrow */}
+                    <div className="pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-xs font-bold text-slate-400 group-hover:text-emerald-400 transition">
+                      <span>{linesCount > 0 ? `استعراض الخطوط (${formatCount(linesCount)})` : '+ إضافة خط للمزود'}</span>
+                      <ArrowLeft className="w-4 h-4 transform group-hover:-translate-x-1 transition-transform" />
+                    </div>
+                  </div>
+                );
+              })}
+
+              {/* بطاقة التحويل وموازنة السيولة بين الخطوط */}
+              <div
+                onClick={() => setIsInterTransferModalOpen(true)}
+                className="group relative rounded-3xl p-4 sm:p-5 transition-all duration-200 cursor-pointer flex flex-col justify-between overflow-hidden bg-slate-900/85 hover:bg-slate-900 border border-emerald-500/40 hover:border-emerald-400 shadow-lg hover:shadow-xl hover:shadow-emerald-950/30 hover:-translate-y-0.5 active:scale-[0.99] min-h-[180px]"
+                title="موازنة ونقل السيولة بين الخطوط"
+              >
+                <div>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-slate-950 font-bold shadow-md group-hover:scale-105 transition-transform shrink-0">
+                        <ArrowLeftRight className="w-6 h-6 stroke-[2.5]" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-extrabold text-sm sm:text-base text-white group-hover:text-emerald-300 transition leading-snug truncate">
+                          موازنة ونقل السيولة
+                        </h3>
+                        <p className="text-[11px] text-slate-400 mt-0.5 truncate">
+                          التحويل الفوري بين كافة الخطوط والمحافظ
+                        </p>
+                      </div>
+                    </div>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 whitespace-nowrap">
+                      متاح فوري
+                    </span>
+                  </div>
+
+                  <div className="my-3.5 p-3 rounded-2xl bg-slate-950/80 border border-slate-800/90 flex items-center justify-between gap-2">
+                    <div>
+                      <span className="text-[10px] sm:text-[11px] text-slate-400 block font-medium">نوع الخدمة:</span>
+                      <span className="text-base font-bold text-emerald-400 mt-0.5 block">تحويل وموازنة</span>
+                    </div>
+                    <div className="text-left border-r border-slate-800/80 pr-3">
+                      <span className="text-[10px] sm:text-[11px] text-slate-400 block font-medium">المحافظ المتاحة:</span>
+                      <span className="text-base font-mono font-bold text-white mt-0.5 block">{formatCount(lines.length)} خط نشط</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-xs font-bold text-emerald-400 group-hover:text-emerald-300 transition">
+                  <span>فتح نافذة موازنة السيولة</span>
+                  <ArrowLeft className="w-4 h-4 transform group-hover:-translate-x-1 transition-transform" />
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* 2. FILTERED COMPANY / ALL LINES MODE: Lines Cards Grid                      */}
+      {/* ========================================================================= */}
+      {selectedCompany !== null && (
+        <div className="space-y-3">
+          {/* Header Bar with Back Navigation */}
+          <div className="p-3.5 sm:p-4 rounded-2xl bg-slate-900/90 border border-slate-800 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+            <div className="flex items-center gap-3 min-w-0 flex-1">
+              {/* Back Button */}
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedCompany(null);
+                  setSearchQuery('');
+                }}
+                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs sm:text-sm font-bold flex items-center gap-1.5 border border-slate-700 shadow-sm cursor-pointer transition shrink-0 active:scale-[0.98]"
+                title="الرجوع لكافة الشركات والبنوك"
+              >
+                <ArrowRight className="w-4 h-4 text-emerald-400" />
+                <span>الرجوع للشركات</span>
+              </button>
+
+              {/* Selected Company Logo */}
+              {selectedCompany !== 'all' ? (
+                <div className="w-11 h-11 rounded-2xl overflow-hidden shrink-0 flex items-center justify-center p-1 bg-slate-950 border border-slate-800 shadow-inner">
+                  {(() => {
+                    const cfg = PROVIDER_CONFIG[selectedCompany] || PROVIDER_CONFIG.other;
+                    const Icon = cfg.icon;
+                    return <Icon className="w-full h-full object-contain" />;
+                  })()}
+                </div>
+              ) : (
+                <div className="w-11 h-11 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0">
+                  <Layers className="w-5 h-5" />
+                </div>
+              )}
+
+              {/* Title & Stats */}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <h1 className="text-base sm:text-lg font-black text-white truncate">
+                    {selectedCompany === 'all'
+                      ? 'كافة خطوط الكاش والمحافظ'
+                      : (PROVIDER_CONFIG[selectedCompany]?.name || selectedCompany)}
+                  </h1>
+                  <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 font-mono font-bold">
+                    {formatCount(filteredLines.length)} {filteredLines.length === 1 ? 'خط مسجل' : 'خطوط مسجلة'}
+                  </span>
+                </div>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  إجمالي السيولة المتاحة: <strong className="text-emerald-400 font-mono">{formatAmount(filteredLines.reduce((s, l) => s + (l.balance || 0), 0))} ج.م</strong>
+                </p>
+              </div>
+            </div>
+
+            {/* Actions for Selected Company */}
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              {canManageLines && (
+                <button
+                  type="button"
+                  onClick={() => openAddModal(selectedCompany === 'all' ? undefined : selectedCompany)}
+                  className="flex-1 sm:flex-none px-3.5 py-2 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white font-bold rounded-xl shadow-md text-xs sm:text-sm flex items-center justify-center gap-1.5 cursor-pointer transition whitespace-nowrap active:scale-[0.98]"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>
+                    {selectedCompany === 'all'
+                      ? 'إضافة خط جديد'
+                      : `إضافة خط لـ ${PROVIDER_CONFIG[selectedCompany]?.shortName || 'الشركة'}`}
+                  </span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setIsInterTransferModalOpen(true)}
+                className="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white rounded-xl text-xs sm:text-sm font-bold flex items-center justify-center gap-1.5 border border-slate-700 cursor-pointer transition whitespace-nowrap active:scale-[0.98]"
+              >
+                <ArrowLeftRight className="w-4 h-4 text-emerald-400" />
+                <span>موازنة السيولة</span>
+              </button>
+            </div>
+          </div>
+
+          {/* If viewing 'all', show provider tabs */}
+          {selectedCompany === 'all' && (
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+              <button
+                type="button"
+                onClick={() => setSelectedCategory('all')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                  selectedCategory === 'all'
+                    ? 'bg-emerald-600 text-white shadow-sm shadow-emerald-600/20'
+                    : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+                }`}
+              >
+                <span>الكل</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/20 font-mono font-normal">
+                  {formatCount(lines.length)}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedCategory('vodafone')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                  selectedCategory === 'vodafone'
+                    ? 'bg-red-600 text-white shadow-sm shadow-red-600/20'
+                    : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-red-500" />
+                <span>فودافون كاش</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/20 font-mono font-normal">
+                  {formatCount(lines.filter((l) => l.provider === 'vodafone' || l.provider === 'vodafone_vip').length)}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedCategory('orange')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                  selectedCategory === 'orange'
+                    ? 'bg-orange-500 text-white shadow-sm shadow-orange-500/20'
+                    : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-orange-500" />
+                <span>أورنج كاش</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/20 font-mono font-normal">
+                  {formatCount(lines.filter((l) => l.provider === 'orange').length)}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedCategory('etisalat')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                  selectedCategory === 'etisalat'
+                    ? 'bg-lime-600 text-white shadow-sm shadow-lime-600/20'
+                    : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-lime-500" />
+                <span>اتصالات كاش</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/20 font-mono font-normal">
+                  {formatCount(lines.filter((l) => l.provider === 'etisalat').length)}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedCategory('we')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                  selectedCategory === 'we'
+                    ? 'bg-purple-600 text-white shadow-sm shadow-purple-600/20'
+                    : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-purple-500" />
+                <span>وي باي</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/20 font-mono font-normal">
+                  {formatCount(lines.filter((l) => l.provider === 'we').length)}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedCategory('banks')}
+                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center gap-1.5 shrink-0 cursor-pointer ${
+                  selectedCategory === 'banks'
+                    ? 'bg-blue-600 text-white shadow-sm shadow-blue-600/20'
+                    : 'bg-slate-900 text-slate-400 hover:text-white hover:bg-slate-800 border border-slate-800'
+                }`}
+              >
+                <span className="w-2 h-2 rounded-full bg-blue-500" />
+                <span>إنستاباي والبنوك</span>
+                <span className="text-[10px] px-1.5 py-0.2 rounded-full bg-black/20 font-mono font-normal">
+                  {formatCount(lines.filter((l) => l.provider !== 'vodafone' && l.provider !== 'vodafone_vip' && l.provider !== 'orange' && l.provider !== 'etisalat' && l.provider !== 'we').length)}
+                </span>
+              </button>
+            </div>
+          )}
+
+          {/* Search Bar for specific company lines */}
+          <div className="relative w-full">
+            <div className="absolute inset-y-0 right-0 pr-3.5 flex items-center pointer-events-none text-slate-400">
+              <Search className="w-4 h-4" />
+            </div>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="بحث برقم الهاتف، اسم الخط، أو المالك..."
+              className="w-full pr-10 pl-3 py-2 bg-slate-900/90 border border-slate-800 rounded-xl text-xs text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-1 focus:ring-emerald-500 leading-normal shadow-xs"
+            />
+          </div>
+
+          {/* Lines Cards Grid */}
+          {isLoading ? (
+            <div className="flex justify-center items-center py-20 text-slate-400">
+              <RefreshCw className="w-6 h-6 animate-spin text-emerald-500 ml-2" />
+              <span>جاري تحميل بيانات الخطوط...</span>
+            </div>
+          ) : filteredLines.length === 0 ? (
+            <div className="p-12 text-center rounded-3xl bg-slate-900/40 border border-slate-800 text-slate-400 space-y-3">
+              <div className="w-14 h-14 rounded-2xl bg-slate-800/80 border border-slate-700 text-slate-400 flex items-center justify-center mx-auto">
+                <Wallet className="w-7 h-7 text-emerald-400" />
+              </div>
+              <h3 className="font-extrabold text-white text-base">
+                {selectedCompany === 'all'
+                  ? 'لم يتم العثور على أي خطوط تطابق البحث'
+                  : `لا توجد خطوط أو محافظ مسجلة لـ ${PROVIDER_CONFIG[selectedCompany]?.name || selectedCompany} حالياً`}
+              </h3>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                {selectedCompany === 'all'
+                  ? 'تأكد من رقم الهاتف أو غير نص البحث'
+                  : `يمكنك إضافة أول خط أو محفظة كاش تابعة لـ ${PROVIDER_CONFIG[selectedCompany]?.name || selectedCompany} لبدء تنفيذ المعاملات والموازنة`}
+              </p>
+              {canManageLines && (
+                <button
+                  type="button"
+                  onClick={() => openAddModal(selectedCompany === 'all' ? undefined : selectedCompany)}
+                  className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-950/40 text-xs sm:text-sm hover:from-emerald-500 hover:to-teal-400 transition cursor-pointer"
+                >
+                  <Plus className="w-4 h-4" />
+                  <span>
+                    {selectedCompany === 'all'
+                      ? 'إضافة خط جديد'
+                      : `+ إضافة أول خط لـ ${PROVIDER_CONFIG[selectedCompany]?.shortName || 'الشركة'}`}
+                  </span>
+                </button>
+              )}
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredLines.map((line) => {
+                const todayUsed = line.todayUsed || 0;
+                const remainingDaily = line.remainingDaily !== undefined ? line.remainingDaily : Math.max(0, line.dailyLimit - todayUsed);
+                const dailyPercent = line.dailyLimit > 0 ? Math.min(100, Math.round((todayUsed / line.dailyLimit) * 100)) : 0;
+
+                const monthUsed = line.monthUsed || 0;
+                const remainingMonthly = line.remainingMonthly !== undefined ? line.remainingMonthly : Math.max(0, line.monthlyLimit - monthUsed);
+                const monthlyPercent = line.monthlyLimit > 0 ? Math.min(100, Math.round((monthUsed / line.monthlyLimit) * 100)) : 0;
+
+                const isHighDaily = dailyPercent >= line.warningThresholdPercent;
+                const isHighMonthly = monthlyPercent >= line.warningThresholdPercent;
+
+                return (
+                  <div
+                    key={line.id}
+                    onClick={() => onViewLineHistory(line.id)}
+                    className="rounded-3xl transition-all duration-200 shadow-lg flex flex-col justify-between overflow-hidden group cursor-pointer bg-slate-900/80 border border-slate-800 hover:border-emerald-500/50 hover:bg-slate-900/95 hover:shadow-emerald-500/10"
+                    title="انقر لعرض تفاصيل وسجل هذا الخط"
+                  >
+                    {/* Card Top: Provider Icon & Provider Name + Account Holder on Right, Status Badge & Phone Number on Left */}
+                    <div className="p-4 sm:p-5 border-b bg-slate-950/60 border-slate-800/80">
+                      <div className="flex items-start justify-between gap-3">
+                        {/* Right: Icon + Provider Name & Account Holder Name */}
+                        <div className="flex items-center gap-2.5 sm:gap-3 min-w-0 flex-1">
+                          <div className="shrink-0 w-11 h-11 sm:w-12 sm:h-12 rounded-2xl overflow-hidden shadow-md flex items-center justify-center bg-slate-900 border border-slate-800">
+                            <ProviderBadge provider={line.provider} size="md" showLabel={false} />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <span className="text-[10px] sm:text-[11px] text-slate-400 block font-medium truncate">
+                              {PROVIDER_CONFIG[line.provider]?.name || 'مزود الخدمة'}
+                            </span>
+                            <h3 
+                              className="font-bold text-white text-xs sm:text-sm leading-normal group-hover:text-emerald-400 transition truncate"
+                              title={line.accountHolder || line.name}
+                            >
+                              {line.accountHolder || line.name}
+                            </h3>
+                          </div>
+                        </div>
+
+                        {/* Left: Status Badge on Top, Phone/Account Number below it */}
+                        <div className="shrink-0 flex flex-col items-end gap-1.5">
+                          <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                            {line.status === 'active' && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 whitespace-nowrap shrink-0 shadow-sm shadow-emerald-950/40">
+                                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                                <span className="whitespace-nowrap">نشط</span>
+                              </span>
+                            )}
+                            {line.status === 'paused' && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/30 whitespace-nowrap">
+                                <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                                <span>متوقف</span>
+                              </span>
+                            )}
+                            {line.status === 'suspended' && (
+                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/30 whitespace-nowrap">
+                                <span className="w-1.5 h-1.5 rounded-full bg-rose-400 shrink-0" />
+                                <span>موقوف</span>
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Phone / Account Number below status badge */}
+                          <span className="text-sm sm:text-base font-mono font-black text-emerald-400 tracking-wider mt-0.5" dir="ltr">
+                            {line.phoneNumber}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card Middle: Liquidity Balance & Limit Progress */}
+                    <div className="p-4 sm:p-5 space-y-3.5">
+                      {/* Liquidity / Balance Box */}
+                      <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-950/90 border border-slate-800 flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <span className="text-[11px] text-slate-400 flex items-center gap-1.5 font-medium">
+                            <Coins className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                            السيولة المتاحة حالياً
+                          </span>
+                          <span className="text-lg sm:text-xl font-mono font-black text-white mt-0.5 block truncate">
+                            {formatAmount(line.balance)} <span className="text-xs font-sans text-slate-400">ج.م</span>
+                          </span>
+                        </div>
+                        <div className="text-left text-xs text-slate-400 font-sans shrink-0 space-y-0.5">
+                          <div className="text-[11px]"><strong className="text-slate-200 font-mono font-bold">{formatCount(line.todayCount || 0)}</strong> عملية اليوم</div>
+                          <div className="text-[10px] text-slate-500"><strong className="text-slate-300 font-mono font-bold">{formatCount(line.monthCount || 0)}</strong> هذا الشهر</div>
+                        </div>
+                      </div>
+
+                      {/* Daily Limit Progress */}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between text-xs font-sans">
+                          <span className="text-slate-400 font-medium">الحد اليومي:</span>
+                          <span className="text-slate-300 text-[11px] sm:text-xs">
+                            مستهلك: <strong className="text-white font-mono">{formatAmount(todayUsed)}</strong> / <span className="font-mono">{formatAmount(line.dailyLimit)}</span> ج.م
+                          </span>
+                        </div>
+                        <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              dailyPercent >= 90 ? 'bg-rose-500' : dailyPercent >= 80 ? 'bg-amber-500' : 'bg-emerald-500'
+                            }`}
+                            style={{ width: `${Math.min(100, dailyPercent)}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] font-sans">
+                          <span className={isHighDaily ? 'text-amber-400 font-bold' : 'text-slate-400'}>
+                            نسبة الاستهلاك: <strong className="font-mono">{dailyPercent}%</strong>
+                          </span>
+                          <span className="text-emerald-400 font-semibold">
+                            المتبقي اليوم: <span className="font-mono">{formatAmount(remainingDaily)}</span> ج.م
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Monthly Limit Progress */}
+                      <div className="space-y-1.5 pt-2 border-t border-slate-800/80">
+                        <div className="flex items-center justify-between text-xs font-sans">
+                          <span className="text-slate-400 font-medium">الحد الشهري:</span>
+                          <span className="text-slate-300 text-[11px] sm:text-xs">
+                            مستهلك: <strong className="text-white font-mono">{formatAmount(monthUsed)}</strong> / <span className="font-mono">{formatAmount(line.monthlyLimit)}</span> ج.م
+                          </span>
+                        </div>
+                        <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
+                          <div
+                            className={`h-full rounded-full transition-all duration-500 ${
+                              monthlyPercent >= 90 ? 'bg-rose-500' : monthlyPercent >= 80 ? 'bg-amber-500' : 'bg-cyan-500'
+                            }`}
+                            style={{ width: `${Math.min(100, monthlyPercent)}%` }}
+                          />
+                        </div>
+                        <div className="flex items-center justify-between text-[11px] font-sans">
+                          <span className={isHighMonthly ? 'text-amber-400 font-bold' : 'text-slate-400'}>
+                            نسبة الاستهلاك: <strong className="font-mono">{monthlyPercent}%</strong>
+                          </span>
+                          <span className="text-cyan-400 font-semibold">
+                            المتبقي هذا الشهر: <span className="font-mono">{formatAmount(remainingMonthly)}</span> ج.م
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Card Actions Bottom */}
+                    <div className="p-3.5 sm:p-4 bg-slate-950/95 border-t border-slate-800/80 space-y-2.5">
+                      {/* Primary Money Operation Buttons */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onInitiateTransfer(line.id);
+                          }}
+                          disabled={line.status !== 'active'}
+                          className="w-full h-10 px-3 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 shadow-md shadow-emerald-600/20 cursor-pointer whitespace-nowrap active:scale-[0.98]"
+                          title="تحويل صادر"
+                        >
+                          <ArrowLeftRight className="w-4 h-4 shrink-0" />
+                          <span>تحويل</span>
+                        </button>
+
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (onInitiateReceive) {
+                              onInitiateReceive(line.id);
+                            } else {
+                              onInitiateTransfer(line.id);
+                            }
+                          }}
+                          disabled={line.status !== 'active'}
+                          className="w-full h-10 px-3 bg-gradient-to-r from-blue-600 to-cyan-500 hover:from-blue-500 hover:to-cyan-400 disabled:opacity-40 disabled:cursor-not-allowed text-white text-xs sm:text-sm font-bold rounded-xl transition flex items-center justify-center gap-1.5 shadow-md shadow-blue-600/20 cursor-pointer whitespace-nowrap active:scale-[0.98]"
+                          title="استلام أموال وارد"
+                        >
+                          <ArrowDownLeft className="w-4 h-4 shrink-0" />
+                          <span>استلام</span>
+                        </button>
+                      </div>
+
+                      {/* Secondary Line Tools */}
+                      <div className="flex items-center gap-2 pt-1.5 border-t border-slate-800/60">
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onViewLineHistory(line.id);
+                          }}
+                          className="flex-1 h-8 px-2.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white rounded-xl transition text-[11px] font-semibold cursor-pointer border border-slate-800 flex items-center justify-center gap-1.5 active:scale-[0.98]"
+                          title="سجل تحويلات هذا الخط"
+                        >
+                          <History className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                          <span>سجل العمليات</span>
+                        </button>
+
+                        {canManageLines && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              openEditModal(line);
+                            }}
+                            className="w-8 h-8 bg-slate-900 hover:bg-slate-800 text-slate-400 hover:text-white rounded-xl transition text-xs font-semibold cursor-pointer border border-slate-800 flex items-center justify-center shrink-0 active:scale-[0.98]"
+                            title="تعديل بيانات الخط"
+                          >
+                            <Edit3 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+
+                        {user?.role === 'admin' && (
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteLine(line);
+                            }}
+                            className="w-8 h-8 bg-rose-950/30 hover:bg-rose-900/50 text-rose-400 hover:text-rose-200 border border-rose-500/20 rounded-xl transition text-xs cursor-pointer flex items-center justify-center shrink-0 active:scale-[0.98]"
+                            title="حذف الخط"
+                          >
+                            <Trash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       )}
 

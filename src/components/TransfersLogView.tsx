@@ -230,9 +230,11 @@ export const TransfersLogView: React.FC<TransfersLogViewProps> = ({
             <label className="block text-[11px] font-semibold text-slate-400 mb-1">من تاريخ</label>
             <input
               type="date"
+              lang="en"
+              dir="ltr"
               value={startDate}
               onChange={(e) => setStartDate(e.target.value)}
-              className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono text-center tracking-wider"
             />
           </div>
 
@@ -241,9 +243,11 @@ export const TransfersLogView: React.FC<TransfersLogViewProps> = ({
             <label className="block text-[11px] font-semibold text-slate-400 mb-1">إلى تاريخ</label>
             <input
               type="date"
+              lang="en"
+              dir="ltr"
               value={endDate}
               onChange={(e) => setEndDate(e.target.value)}
-              className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-500"
+              className="w-full p-2 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:ring-1 focus:ring-emerald-500 font-mono text-center tracking-wider"
             />
           </div>
 
