@@ -57,7 +57,7 @@ export interface CashLine {
   syncedMonthlyLimit?: number | null;
   syncedMonthlyUsed?: number | null;
   isSynced?: boolean;
-  // Computed usage properties
+  // Computed usage properties (Independent 60k/200k quotas for Send and Receive)
   todayUsed?: number;
   todayCount?: number;
   remainingDaily?: number;
@@ -66,6 +66,22 @@ export interface CashLine {
   monthCount?: number;
   remainingMonthly?: number;
   monthlyUtilizationPercent?: number;
+
+  // Separate Outgoing (Transfer) quota: 60k daily, 200k monthly
+  todayTransferUsed?: number;
+  remainingDailyTransfer?: number;
+  dailyTransferPercent?: number;
+  monthTransferUsed?: number;
+  remainingMonthlyTransfer?: number;
+  monthlyTransferPercent?: number;
+
+  // Separate Incoming (Receive) quota: 60k daily, 200k monthly
+  todayReceiveUsed?: number;
+  remainingDailyReceive?: number;
+  dailyReceivePercent?: number;
+  monthReceiveUsed?: number;
+  remainingMonthlyReceive?: number;
+  monthlyReceivePercent?: number;
 }
 
 export type TransferType = 'cash_wallet' | 'bank_transfer' | 'inter_line' | 'receive_money';
@@ -356,6 +372,25 @@ export interface ShiftHandover {
   managerApprovedById?: string;
   managerApprovedByName?: string;
   status: HandoverStatus;
+  shiftNumber?: string;
+  drawerActualBalance?: number;
+  drawerExpectedBalance?: number;
+  customerVaultBalance?: number;
+  subVaultBalance?: number;
+  denominations?: { [key: string]: number };
+  printedAt?: string;
+  printedBy?: string;
+  printCount?: number;
+  snapshotData?: {
+    allLines: CashLine[];
+    vaults: Vault[];
+    subVault?: Vault;
+    customerVault?: Vault;
+    deliveringUserName?: string;
+    receivingUserName?: string;
+    notes?: string;
+    timestamp?: string;
+  };
   createdAt: string;
   updatedAt: string;
 }

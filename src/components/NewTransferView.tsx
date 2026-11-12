@@ -470,12 +470,23 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
   // Line balance deduction is: amount + commission (user specification)
   const totalAmount = isReceiving ? numAmount : (numAmount + numCommission);
 
-  // Strict Zero-Balance and Limit Calculations (Daily: 60,000 | Monthly: 200,000 | Single: 60,000)
+  // Strict Zero-Balance and Independent Limit Calculations (Daily: 60,000 send / 60,000 receive | Monthly: 200,000 send / 200,000 receive | Single: 60,000)
   const isZeroBalance = Boolean(selectedLine && selectedLine.balance <= 0);
   const dailyCap = selectedLine ? (selectedLine.dailyLimit || 60000) : 60000;
   const monthlyCap = selectedLine ? (selectedLine.monthlyLimit || 200000) : 200000;
-  const remainingDaily = selectedLine ? (selectedLine.remainingDaily ?? Math.max(0, dailyCap - (selectedLine.todayUsed || 0))) : 0;
-  const remainingMonthly = selectedLine ? (selectedLine.remainingMonthly ?? Math.max(0, monthlyCap - (selectedLine.monthUsed || 0))) : 0;
+
+  // Separate Independent Quotas: Send (60k/200k) vs Receive (60k/200k)
+  const remainingDaily = selectedLine
+    ? (isReceiving
+        ? (selectedLine.remainingDailyReceive ?? Math.max(0, dailyCap - (selectedLine.todayReceiveUsed || 0)))
+        : (selectedLine.remainingDailyTransfer ?? Math.max(0, dailyCap - (selectedLine.todayTransferUsed || 0))))
+    : 0;
+
+  const remainingMonthly = selectedLine
+    ? (isReceiving
+        ? (selectedLine.remainingMonthlyReceive ?? Math.max(0, monthlyCap - (selectedLine.monthReceiveUsed || 0)))
+        : (selectedLine.remainingMonthlyTransfer ?? Math.max(0, monthlyCap - (selectedLine.monthTransferUsed || 0))))
+    : 0;
 
   const isMaxSingleExceeded = Boolean(numAmount > 60000);
   const isDailyLimitExceeded = Boolean(!overrideLimit && selectedLine && numAmount > 0 && numAmount > remainingDaily);
@@ -489,9 +500,9 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
     if (isMaxSingleExceeded) {
       limitWarning = `تنبيه حاسم: الحد الأقصى للمعاملة الواحدة للمحافظ الإلكترونية هو 60,000 ج.م فقط! المبلغ المدخل (${formatAmount(numAmount)} ج.م) يتجاوز الحد المسموح.`;
     } else if (isDailyLimitExceeded) {
-      limitWarning = `لا يمكن إتمام ${isReceiving ? 'الاستلام' : 'التحويل'}: تم تجاوز الحد الأقصى اليومي لهذا الخط (${formatAmount(dailyCap)} ج.م)! المبلغ المتاح ${isReceiving ? 'لاستقباله' : 'لإرساله'} اليوم هو فقط: ${formatAmount(remainingDaily)} ج.م.`;
+      limitWarning = `لا يمكن إتمام ${isReceiving ? 'الاستلام' : 'التحويل'}: تم تجاوز الحد الأقصى اليومي ${isReceiving ? 'لاستقبال' : 'لإرسال'} الأموال لهذا الخط (${formatAmount(dailyCap)} ج.م)! المبلغ المتاح ${isReceiving ? 'لاستقباله' : 'لإرساله'} اليوم هو فقط: ${formatAmount(remainingDaily)} ج.م.`;
     } else if (isMonthlyLimitExceeded) {
-      limitWarning = `لا يمكن إتمام ${isReceiving ? 'الاستلام' : 'التحويل'}: تم تجاوز الحد الأقصى الشهري لهذا الخط (${formatAmount(monthlyCap)} ج.م)! المبلغ المتاح ${isReceiving ? 'لاستقباله' : 'لإرساله'} لهذا الشهر هو فقط: ${formatAmount(remainingMonthly)} ج.م.`;
+      limitWarning = `لا يمكن إتمام ${isReceiving ? 'الاستلام' : 'التحويل'}: تم تجاوز الحد الأقصى الشهري ${isReceiving ? 'لاستقبال' : 'لإرسال'} الأموال لهذا الخط (${formatAmount(monthlyCap)} ج.م)! المبلغ المتاح ${isReceiving ? 'لاستقباله' : 'لإرساله'} لهذا الشهر هو فقط: ${formatAmount(remainingMonthly)} ج.م.`;
     }
 
     if (operationMode === 'transfer') {
@@ -1323,13 +1334,18 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
                   <span className="text-slate-400">الرصيد الحالي بالمحفظة:</span>
                   <span className="font-bold font-mono text-white">{formatAmount(selectedLine.balance)} ج.م</span>
                 </div>
-
                 {isReceiving ? (
                   <>
                     <div className="flex justify-between items-center text-[11px]">
                       <span className="text-emerald-400 font-medium">المبلغ المستلم المضاف (+):</span>
                       <span className="font-mono text-emerald-400 font-bold">
                         +{formatAmount(numAmount)} ج.م
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center text-[11px]">
+                      <span className="text-slate-400">الحد المتبقي للاستقبال اليوم:</span>
+                      <span className="font-mono text-blue-400 font-bold">
+                        {formatAmount(remainingDaily)} ج.م
                       </span>
                     </div>
                     <div className="flex justify-between items-center pt-2 border-t border-slate-800 text-xs">
@@ -1342,9 +1358,9 @@ export const NewTransferView: React.FC<NewTransferViewProps> = ({
                 ) : (
                   <>
                     <div className="flex justify-between items-center text-[11px]">
-                      <span className="text-slate-400">الحد اليومي المتبقي:</span>
+                      <span className="text-slate-400">الحد المتبقي للإرسال اليوم:</span>
                       <span className="font-mono text-emerald-400 font-bold">
-                        {formatAmount(selectedLine.remainingDaily ?? selectedLine.dailyLimit)} ج.م
+                        {formatAmount(remainingDaily)} ج.م
                       </span>
                     </div>
                     <div className="flex justify-between items-center pt-2 border-t border-slate-800 text-xs">

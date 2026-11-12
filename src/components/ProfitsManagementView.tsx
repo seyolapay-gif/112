@@ -177,7 +177,6 @@ export const ProfitsManagementView: React.FC<ProfitsManagementViewProps> = ({
       const opGross = isReceive ? fee : (commission + fee);
       totalGrossProfit += opGross;
 
-      totalNetProfit += profit;
       totalFeesCollected += fee;
       totalCommissionsPaid += commission;
       totalVolume += amount;
@@ -190,6 +189,9 @@ export const ProfitsManagementView: React.FC<ProfitsManagementViewProps> = ({
         outgoingCount += 1;
       }
     });
+
+    // المعادلة الحسابية المعتمدة: إجمالي الأرباح - عمولات المشغلين المخصومة = إجمالي صافي الربح
+    totalNetProfit = totalGrossProfit - totalCommissionsPaid;
 
     return {
       totalGrossProfit,
@@ -628,7 +630,6 @@ export const ProfitsManagementView: React.FC<ProfitsManagementViewProps> = ({
                 <th className="p-2.5 whitespace-nowrap">مبلغ المعاملة</th>
                 <th className="p-2.5 whitespace-nowrap">عمولة المشغل</th>
                 <th className="p-2.5 whitespace-nowrap">رسوم الخدمة</th>
-                <th className="p-2.5 whitespace-nowrap text-center">حساب الربح</th>
                 <th className="p-2.5 whitespace-nowrap text-center">صافي الربح</th>
                 <th className="p-2.5 whitespace-nowrap text-center">الإجراءات</th>
               </tr>
@@ -636,7 +637,7 @@ export const ProfitsManagementView: React.FC<ProfitsManagementViewProps> = ({
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/60">
               {filteredTransfers.length === 0 ? (
                 <tr>
-                  <td colSpan={11} className="p-8 text-center text-slate-400">
+                  <td colSpan={10} className="p-8 text-center text-slate-400">
                     لا توجد عمليات تطابق معايير البحث أو الفترة المحددة
                   </td>
                 </tr>
@@ -698,17 +699,6 @@ export const ProfitsManagementView: React.FC<ProfitsManagementViewProps> = ({
                       {/* Service Fee */}
                       <td className="p-2.5 font-mono text-emerald-600 dark:text-emerald-400 whitespace-nowrap">
                         +{formatAmount(fee)} ج.م
-                      </td>
-
-                      {/* Formula Column */}
-                      <td className="p-2.5 text-center font-mono text-[11px] text-slate-600 dark:text-slate-400 whitespace-nowrap">
-                        {isReceive ? (
-                          <span className="text-blue-600 dark:text-blue-300 font-bold">{formatAmount(fee)} ج.م (عمولة كاملة)</span>
-                        ) : (
-                          <span>
-                            {formatAmount(fee)} - {formatAmount(comm)} = <strong className="text-emerald-600 dark:text-emerald-400">{formatAmount(fee - comm)}</strong>
-                          </span>
-                        )}
                       </td>
 
                       {/* Net Profit Column */}

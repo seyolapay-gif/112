@@ -35,6 +35,7 @@ import {
   Globe,
   ArrowRight,
   ArrowLeft,
+  ArrowUpRight,
   Layers,
   ChevronLeft
 } from 'lucide-react';
@@ -1041,16 +1042,20 @@ export const CashLinesView: React.FC<CashLinesViewProps> = ({
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {filteredLines.map((line) => {
-                const todayUsed = line.todayUsed || 0;
-                const remainingDaily = line.remainingDaily !== undefined ? line.remainingDaily : Math.max(0, line.dailyLimit - todayUsed);
-                const dailyPercent = line.dailyLimit > 0 ? Math.min(100, Math.round((todayUsed / line.dailyLimit) * 100)) : 0;
+                const dailyLimit = line.dailyLimit || 60000;
+                const monthlyLimit = line.monthlyLimit || 200000;
 
-                const monthUsed = line.monthUsed || 0;
-                const remainingMonthly = line.remainingMonthly !== undefined ? line.remainingMonthly : Math.max(0, line.monthlyLimit - monthUsed);
-                const monthlyPercent = line.monthlyLimit > 0 ? Math.min(100, Math.round((monthUsed / line.monthlyLimit) * 100)) : 0;
+                const sendToday = line.todayTransferUsed || 0;
+                const receiveToday = line.todayReceiveUsed || 0;
+                const sendDailyRem = line.remainingDailyTransfer ?? Math.max(0, dailyLimit - sendToday);
+                const rcvDailyRem = line.remainingDailyReceive ?? Math.max(0, dailyLimit - receiveToday);
+                const sendDailyPercent = dailyLimit > 0 ? Math.min(100, Math.round((sendToday / dailyLimit) * 100)) : 0;
+                const rcvDailyPercent = dailyLimit > 0 ? Math.min(100, Math.round((receiveToday / dailyLimit) * 100)) : 0;
 
-                const isHighDaily = dailyPercent >= line.warningThresholdPercent;
-                const isHighMonthly = monthlyPercent >= line.warningThresholdPercent;
+                const sendMonth = line.monthTransferUsed || 0;
+                const receiveMonth = line.monthReceiveUsed || 0;
+                const sendMonthRem = line.remainingMonthlyTransfer ?? Math.max(0, monthlyLimit - sendMonth);
+                const rcvMonthRem = line.remainingMonthlyReceive ?? Math.max(0, monthlyLimit - receiveMonth);
 
                 return (
                   <div
@@ -1111,7 +1116,7 @@ export const CashLinesView: React.FC<CashLinesViewProps> = ({
                       </div>
                     </div>
 
-                    {/* Card Middle: Liquidity Balance & Limit Progress */}
+                    {/* Card Middle: Liquidity Balance & Independent Limit Progress */}
                     <div className="p-4 sm:p-5 space-y-3.5">
                       {/* Liquidity / Balance Box */}
                       <div className="p-3 sm:p-3.5 rounded-2xl bg-slate-950/90 border border-slate-800 flex items-center justify-between gap-3">
@@ -1130,55 +1135,73 @@ export const CashLinesView: React.FC<CashLinesViewProps> = ({
                         </div>
                       </div>
 
-                      {/* Daily Limit Progress */}
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between text-xs font-sans">
-                          <span className="text-slate-400 font-medium">الحد اليومي:</span>
-                          <span className="text-slate-300 text-[11px] sm:text-xs">
-                            مستهلك: <strong className="text-white font-mono">{formatAmount(todayUsed)}</strong> / <span className="font-mono">{formatAmount(line.dailyLimit)}</span> ج.م
-                          </span>
+                      {/* Independent Quotas: Send (60k) and Receive (60k) */}
+                      <div className="space-y-2.5">
+                        {/* 1. Daily Transfer (Send) */}
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between text-xs font-sans">
+                            <span className="text-slate-400 font-medium flex items-center gap-1">
+                              <ArrowUpRight className="w-3 h-3 text-emerald-400" />
+                              <span>حد التحويل اليومي (صادر):</span>
+                            </span>
+                            <span className="text-slate-300 text-[11px]">
+                              مستهلك: <strong className="text-white font-mono">{formatAmount(sendToday)}</strong> / <span className="font-mono">{formatAmount(dailyLimit)}</span> ج.م
+                            </span>
+                          </div>
+                          <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${
+                                sendDailyPercent >= 90 ? 'bg-rose-500' : sendDailyPercent >= 80 ? 'bg-amber-500' : 'bg-emerald-500'
+                              }`}
+                              style={{ width: `${Math.min(100, sendDailyPercent)}%` }}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-[10.5px] font-sans">
+                            <span className="text-slate-400">استهلاك الإرسال: <strong className="font-mono text-slate-300">{sendDailyPercent}%</strong></span>
+                            <span className="text-emerald-400 font-semibold">المتبقي للإرسال: <strong className="font-mono">{formatAmount(sendDailyRem)}</strong> ج.م</span>
+                          </div>
                         </div>
-                        <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all duration-500 ${
-                              dailyPercent >= 90 ? 'bg-rose-500' : dailyPercent >= 80 ? 'bg-amber-500' : 'bg-emerald-500'
-                            }`}
-                            style={{ width: `${Math.min(100, dailyPercent)}%` }}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between text-[11px] font-sans">
-                          <span className={isHighDaily ? 'text-amber-400 font-bold' : 'text-slate-400'}>
-                            نسبة الاستهلاك: <strong className="font-mono">{dailyPercent}%</strong>
-                          </span>
-                          <span className="text-emerald-400 font-semibold">
-                            المتبقي اليوم: <span className="font-mono">{formatAmount(remainingDaily)}</span> ج.م
-                          </span>
+
+                        {/* 2. Daily Receive */}
+                        <div className="space-y-1 pt-1.5 border-t border-slate-800/60">
+                          <div className="flex items-center justify-between text-xs font-sans">
+                            <span className="text-slate-400 font-medium flex items-center gap-1">
+                              <ArrowDownLeft className="w-3 h-3 text-blue-400" />
+                              <span>حد الاستلام اليومي (وارد):</span>
+                            </span>
+                            <span className="text-slate-300 text-[11px]">
+                              مستهلك: <strong className="text-white font-mono">{formatAmount(receiveToday)}</strong> / <span className="font-mono">{formatAmount(dailyLimit)}</span> ج.م
+                            </span>
+                          </div>
+                          <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full transition-all duration-500 ${
+                                rcvDailyPercent >= 90 ? 'bg-rose-500' : rcvDailyPercent >= 80 ? 'bg-amber-500' : 'bg-blue-500'
+                              }`}
+                              style={{ width: `${Math.min(100, rcvDailyPercent)}%` }}
+                            />
+                          </div>
+                          <div className="flex items-center justify-between text-[10.5px] font-sans">
+                            <span className="text-slate-400">استهلاك الاستقبال: <strong className="font-mono text-slate-300">{rcvDailyPercent}%</strong></span>
+                            <span className="text-blue-400 font-semibold">المتبقي للاستقبال: <strong className="font-mono">{formatAmount(rcvDailyRem)}</strong> ج.م</span>
+                          </div>
                         </div>
                       </div>
 
-                      {/* Monthly Limit Progress */}
-                      <div className="space-y-1.5 pt-2 border-t border-slate-800/80">
-                        <div className="flex items-center justify-between text-xs font-sans">
-                          <span className="text-slate-400 font-medium">الحد الشهري:</span>
-                          <span className="text-slate-300 text-[11px] sm:text-xs">
-                            مستهلك: <strong className="text-white font-mono">{formatAmount(monthUsed)}</strong> / <span className="font-mono">{formatAmount(line.monthlyLimit)}</span> ج.م
-                          </span>
+                      {/* Monthly Limit Breakdown (200,000 for each direction) */}
+                      <div className="space-y-1.5 pt-2 border-t border-slate-800/80 text-xs font-sans">
+                        <div className="flex items-center justify-between text-slate-400">
+                          <span className="font-medium">الحد الشهري (200 ألف لكل اتجاه):</span>
                         </div>
-                        <div className="w-full bg-slate-800 h-2 rounded-full overflow-hidden">
-                          <div
-                            className={`h-full rounded-full transition-all duration-500 ${
-                              monthlyPercent >= 90 ? 'bg-rose-500' : monthlyPercent >= 80 ? 'bg-amber-500' : 'bg-cyan-500'
-                            }`}
-                            style={{ width: `${Math.min(100, monthlyPercent)}%` }}
-                          />
-                        </div>
-                        <div className="flex items-center justify-between text-[11px] font-sans">
-                          <span className={isHighMonthly ? 'text-amber-400 font-bold' : 'text-slate-400'}>
-                            نسبة الاستهلاك: <strong className="font-mono">{monthlyPercent}%</strong>
-                          </span>
-                          <span className="text-cyan-400 font-semibold">
-                            المتبقي هذا الشهر: <span className="font-mono">{formatAmount(remainingMonthly)}</span> ج.م
-                          </span>
+                        <div className="grid grid-cols-2 gap-2 text-[10.5px] p-2 rounded-xl bg-slate-950/70 border border-slate-800/80">
+                          <div>
+                            <span className="text-slate-400 block">متبقي إرسال:</span>
+                            <strong className="text-emerald-400 font-mono text-[11px]">{formatAmount(sendMonthRem)} ج.م</strong>
+                          </div>
+                          <div className="text-left border-r border-slate-800/80 pr-2">
+                            <span className="text-slate-400 block">متبقي استقبال:</span>
+                            <strong className="text-blue-400 font-mono text-[11px]">{formatAmount(rcvMonthRem)} ج.م</strong>
+                          </div>
                         </div>
                       </div>
                     </div>

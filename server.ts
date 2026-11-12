@@ -262,6 +262,16 @@ export interface ShiftHandover {
   managerApprovedById?: string;
   managerApprovedByName?: string;
   status: HandoverStatus;
+  shiftNumber?: string;
+  drawerActualBalance?: number;
+  drawerExpectedBalance?: number;
+  customerVaultBalance?: number;
+  subVaultBalance?: number;
+  denominations?: { [key: string]: number };
+  printedAt?: string;
+  printedBy?: string;
+  printCount?: number;
+  snapshotData?: any;
   createdAt: string;
   updatedAt: string;
 }
@@ -1092,23 +1102,45 @@ function calculateLineUsage(lineId: string) {
   let monthUsed = 0;
   let monthCount = 0;
 
+  // Separate Independent Quotas: Send (60,000 / 200,000) vs Receive (60,000 / 200,000)
+  let todayTransferUsed = 0;
+  let todayReceiveUsed = 0;
+  let monthTransferUsed = 0;
+  let monthReceiveUsed = 0;
+
   for (const t of validTransfers) {
     const tDate = t.timestamp.slice(0, 10);
     const tMonth = t.timestamp.slice(0, 7);
+    const isReceive = t.transferType === 'receive_money';
 
     if (tDate === todayStr) {
       todayUsed += t.amount;
       todayCount++;
+      if (isReceive) {
+        todayReceiveUsed += t.amount;
+      } else {
+        todayTransferUsed += t.amount;
+      }
     }
     if (tMonth === currentYearMonth) {
       monthUsed += t.amount;
       monthCount++;
+      if (isReceive) {
+        monthReceiveUsed += t.amount;
+      } else {
+        monthTransferUsed += t.amount;
+      }
     }
   }
 
   const line = db.cashLines.find((l) => l.id === lineId);
   const dailyLimit = line?.dailyLimit || 60000;
   const monthlyLimit = line?.monthlyLimit || 200000;
+
+  const remainingDailyTransfer = Math.max(0, dailyLimit - todayTransferUsed);
+  const remainingDailyReceive = Math.max(0, dailyLimit - todayReceiveUsed);
+  const remainingMonthlyTransfer = Math.max(0, monthlyLimit - monthTransferUsed);
+  const remainingMonthlyReceive = Math.max(0, monthlyLimit - monthReceiveUsed);
 
   return {
     todayUsed,
@@ -1119,6 +1151,21 @@ function calculateLineUsage(lineId: string) {
     monthCount,
     remainingMonthly: Math.max(0, monthlyLimit - monthUsed),
     monthlyUtilizationPercent: monthlyLimit > 0 ? Math.min(100, Math.round((monthUsed / monthlyLimit) * 100)) : 0,
+
+    // Independent 60k daily & 200k monthly quotas for Send and Receive
+    todayTransferUsed,
+    todayReceiveUsed,
+    remainingDailyTransfer,
+    remainingDailyReceive,
+    dailyTransferPercent: dailyLimit > 0 ? Math.min(100, Math.round((todayTransferUsed / dailyLimit) * 100)) : 0,
+    dailyReceivePercent: dailyLimit > 0 ? Math.min(100, Math.round((todayReceiveUsed / dailyLimit) * 100)) : 0,
+
+    monthTransferUsed,
+    monthReceiveUsed,
+    remainingMonthlyTransfer,
+    remainingMonthlyReceive,
+    monthlyTransferPercent: monthlyLimit > 0 ? Math.min(100, Math.round((monthTransferUsed / monthlyLimit) * 100)) : 0,
+    monthlyReceivePercent: monthlyLimit > 0 ? Math.min(100, Math.round((monthReceiveUsed / monthlyLimit) * 100)) : 0,
   };
 }
 
@@ -1964,17 +2011,22 @@ async function startServer() {
       }
     }
 
-    // 2. Strict Daily (60,000) & Monthly (200,000) Limit Enforcement for both Send and Receive
+    // 2. Strict Daily (60,000) & Monthly (200,000) Limit Enforcement (Independent quotas for Send and Receive)
     const usage = calculateLineUsage(sourceLine.id);
-    const newDailyUsed = usage.todayUsed + transferAmount;
-    const newMonthlyUsed = usage.monthUsed + transferAmount;
+    const applicableDailyUsed = isReceiving ? usage.todayReceiveUsed : usage.todayTransferUsed;
+    const applicableMonthlyUsed = isReceiving ? usage.monthReceiveUsed : usage.monthTransferUsed;
+    const applicableRemainingDaily = isReceiving ? usage.remainingDailyReceive : usage.remainingDailyTransfer;
+    const applicableRemainingMonthly = isReceiving ? usage.remainingMonthlyReceive : usage.remainingMonthlyTransfer;
+
+    const newDailyUsed = applicableDailyUsed + transferAmount;
+    const newMonthlyUsed = applicableMonthlyUsed + transferAmount;
 
     if (newDailyUsed > sourceLine.dailyLimit) {
       if (!overrideLimit || (user.role !== 'admin' && user.role !== 'operations')) {
         return res.status(400).json({
-          error: `لا يمكن إتمام ${isReceiving ? 'الاستلام' : 'التحويل'}: تم تجاوز الحد الأقصى اليومي لهذا الخط (${sourceLine.dailyLimit.toLocaleString()} ${db.settings.currency})! المبلغ المتاح ${isReceiving ? 'لاستقباله' : 'لإرساله'} اليوم هو فقط: ${usage.remainingDaily.toLocaleString()} ${db.settings.currency}`,
+          error: `لا يمكن إتمام ${isReceiving ? 'الاستلام' : 'التحويل'}: تم تجاوز الحد الأقصى اليومي ${isReceiving ? 'لاستقبال' : 'لإرسال'} الأموال لهذا الخط (${sourceLine.dailyLimit.toLocaleString()} ${db.settings.currency})! المبلغ المتاح ${isReceiving ? 'لاستقباله' : 'لإرساله'} اليوم هو فقط: ${applicableRemainingDaily.toLocaleString()} ${db.settings.currency}`,
           limitExceeded: 'daily',
-          remaining: usage.remainingDaily,
+          remaining: applicableRemainingDaily,
         });
       }
     }
@@ -1982,9 +2034,9 @@ async function startServer() {
     if (newMonthlyUsed > sourceLine.monthlyLimit) {
       if (!overrideLimit || (user.role !== 'admin' && user.role !== 'operations')) {
         return res.status(400).json({
-          error: `لا يمكن إتمام ${isReceiving ? 'الاستلام' : 'التحويل'}: تم تجاوز الحد الأقصى الشهري لهذا الخط (${sourceLine.monthlyLimit.toLocaleString()} ${db.settings.currency})! المبلغ المتاح ${isReceiving ? 'لاستقباله' : 'لإرساله'} لهذا الشهر هو فقط: ${usage.remainingMonthly.toLocaleString()} ${db.settings.currency}`,
+          error: `لا يمكن إتمام ${isReceiving ? 'الاستلام' : 'التحويل'}: تم تجاوز الحد الأقصى الشهري ${isReceiving ? 'لاستقبال' : 'لإرسال'} الأموال لهذا الخط (${sourceLine.monthlyLimit.toLocaleString()} ${db.settings.currency})! المبلغ المتاح ${isReceiving ? 'لاستقباله' : 'لإرساله'} لهذا الشهر هو فقط: ${applicableRemainingMonthly.toLocaleString()} ${db.settings.currency}`,
           limitExceeded: 'monthly',
-          remaining: usage.remainingMonthly,
+          remaining: applicableRemainingMonthly,
         });
       }
     }
@@ -3276,6 +3328,9 @@ async function startServer() {
       actualEndingBalance,
       lineVerifications,
       notes,
+      shiftNumber,
+      drawerActualBalance,
+      denominations,
     } = req.body;
 
     const user = (req as any).user as User;
@@ -3304,6 +3359,7 @@ async function startServer() {
     const numTransfersIn = Number(totalTransfersIn) || 0;
     const numTransfersOut = Number(totalTransfersOut) || 0;
     const numActual = Number(actualEndingBalance) || 0;
+    const numDrawerActual = drawerActualBalance !== undefined ? Number(drawerActualBalance) : numActual;
 
     // Strict Accounting Formula: Expected = Start + Deposits + In - Withdrawals - Out
     const expectedEndingBalance = numStart + numDeposits + numTransfersIn - numWithdrawals - numTransfersOut;
@@ -3320,10 +3376,20 @@ async function startServer() {
     const datePrefix = now.toISOString().slice(0, 10).replace(/-/g, '');
     const handoverCount = (db.shiftHandovers || []).length + 1;
     const handoverNumber = `HND-${datePrefix}-${String(handoverCount).padStart(4, '0')}`;
+    const generatedShiftNumber = shiftNumber || `SHF-${datePrefix}-${String(handoverCount).padStart(2, '0')}`;
+
+    // Capture customer vault and sub-vault snapshots
+    const customerVault = (db.vaults || []).find(v => v.type === 'customer');
+    const subVault = vault.type === 'sub' ? vault : (db.vaults || []).find(v => v.type === 'sub');
+
+    // Immutable snapshot of all lines and accounts at the exact moment of handover
+    const snapshotAllLines: CashLine[] = JSON.parse(JSON.stringify(db.cashLines || []));
+    const snapshotVaults: Vault[] = JSON.parse(JSON.stringify(db.vaults || []));
 
     const newHandover: ShiftHandover = {
       id: `hnd_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       handoverNumber,
+      shiftNumber: generatedShiftNumber,
       vaultId: vault.id,
       vaultName: vault.name,
       branch: vault.branch || 'الفرع الرئيسي',
@@ -3343,12 +3409,27 @@ async function startServer() {
       pendingOperationsCount: Number(pendingOperationsCount) || 0,
       expectedEndingBalance,
       actualEndingBalance: numActual,
+      drawerActualBalance: numDrawerActual,
+      drawerExpectedBalance: expectedEndingBalance,
+      subVaultBalance: subVault ? subVault.balance : numActual,
+      customerVaultBalance: customerVault ? customerVault.balance : 0,
+      denominations: denominations || undefined,
       differenceAmount,
       differenceStatus,
       lineVerifications: Array.isArray(lineVerifications) ? lineVerifications : [],
       notes: notes || '',
       deliveringConfirmedAt: now.toISOString(),
       status: 'pending_receiver_approval',
+      snapshotData: {
+        allLines: snapshotAllLines,
+        vaults: snapshotVaults,
+        subVault: subVault ? JSON.parse(JSON.stringify(subVault)) : undefined,
+        customerVault: customerVault ? JSON.parse(JSON.stringify(customerVault)) : undefined,
+        deliveringUserName: user.fullName,
+        receivingUserName: receivingUser.fullName,
+        notes: notes || '',
+        timestamp: now.toISOString(),
+      },
       createdAt: now.toISOString(),
       updatedAt: now.toISOString(),
     };
@@ -3362,6 +3443,36 @@ async function startServer() {
     saveDatabaseAsync();
 
     return res.status(201).json(newHandover);
+  });
+
+  // 10.3.5 Log Handover Report Print (Official Audit)
+  app.post('/api/handovers/:id/log-print', authMiddleware, (req: Request, res: Response) => {
+    const { id } = req.params;
+    const user = (req as any).user as User;
+
+    const handover = (db.shiftHandovers || []).find(h => h.id === id);
+    if (!handover) {
+      return res.status(404).json({ error: 'محضر التسليم غير موجود' });
+    }
+
+    const now = new Date().toISOString();
+    handover.printedAt = now;
+    handover.printedBy = user.fullName;
+    handover.printCount = (handover.printCount || 0) + 1;
+
+    logAudit(
+      { id: user.id, fullName: user.fullName },
+      'طباعة تقرير تسليم وتسلم الوردية',
+      `تمت طباعة التقرير المالي الرسمي للوردية برقم ${handover.handoverNumber} بواسطة ${user.fullName}`
+    );
+    saveDatabaseAsync();
+
+    return res.json({ 
+      success: true, 
+      printedAt: handover.printedAt, 
+      printedBy: handover.printedBy,
+      printCount: handover.printCount 
+    });
   });
 
   // 10.4. Receiving Employee Accepts Handover -> Transfers Vault Custody!

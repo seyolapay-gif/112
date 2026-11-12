@@ -699,6 +699,25 @@ export const api = {
     }
   },
 
+  async logHandoverPrint(id: string): Promise<{ success: boolean; printedAt?: string; printedBy?: string; printCount?: number }> {
+    try {
+      return await request(`/api/handovers/${id}/log-print`, {
+        method: 'POST',
+      });
+    } catch {
+      const db = getLocalDB();
+      const h = (db.shiftHandovers || []).find(item => item.id === id);
+      if (h) {
+        h.printedAt = new Date().toISOString();
+        h.printedBy = 'عادل فتحي';
+        h.printCount = (h.printCount || 0) + 1;
+        saveLocalDB(db);
+        return { success: true, printedAt: h.printedAt, printedBy: h.printedBy, printCount: h.printCount };
+      }
+      return { success: true };
+    }
+  },
+
   async logout(): Promise<void> {
     try {
       await request('/api/auth/logout', { method: 'POST' });
@@ -1069,15 +1088,19 @@ export const api = {
 
       const dailyCap = line.dailyLimit || 60000;
       const monthlyCap = line.monthlyLimit || 200000;
-      const remainingDaily = Math.max(0, dailyCap - (line.todayUsed || 0));
-      const remainingMonthly = Math.max(0, monthlyCap - (line.monthUsed || 0));
+
+      // Independent quotas for Send (60,000 / 200,000) and Receive (60,000 / 200,000)
+      const currentDailyUsed = isReceiving ? (line.todayReceiveUsed || 0) : (line.todayTransferUsed || 0);
+      const currentMonthlyUsed = isReceiving ? (line.monthReceiveUsed || 0) : (line.monthTransferUsed || 0);
+      const remainingDaily = Math.max(0, dailyCap - currentDailyUsed);
+      const remainingMonthly = Math.max(0, monthlyCap - currentMonthlyUsed);
 
       if (amount > remainingDaily && !data.overrideLimit) {
-        throw new Error(`تم تجاوز الحد الأقصى اليومي لهذا الخط (${dailyCap.toLocaleString('en-US')} ج.م)! المتاح ${isReceiving ? 'لاستقباله' : 'لإرساله'} اليوم: ${remainingDaily.toLocaleString('en-US')} ج.م`);
+        throw new Error(`تم تجاوز الحد الأقصى اليومي ${isReceiving ? 'لاستقبال' : 'لإرسال'} الأموال لهذا الخط (${dailyCap.toLocaleString('en-US')} ج.م)! المتاح ${isReceiving ? 'لاستقباله' : 'لإرساله'} اليوم: ${remainingDaily.toLocaleString('en-US')} ج.م`);
       }
 
       if (amount > remainingMonthly && !data.overrideLimit) {
-        throw new Error(`تم تجاوز الحد الأقصى الشهري لهذا الخط (${monthlyCap.toLocaleString('en-US')} ج.م)! المتاح ${isReceiving ? 'لاستقباله' : 'لإرساله'} هذا الشهر: ${remainingMonthly.toLocaleString('en-US')} ج.م`);
+        throw new Error(`تم تجاوز الحد الأقصى الشهري ${isReceiving ? 'لاستقبال' : 'لإرسال'} الأموال لهذا الخط (${monthlyCap.toLocaleString('en-US')} ج.م)! المتاح ${isReceiving ? 'لاستقباله' : 'لإرساله'} هذا الشهر: ${remainingMonthly.toLocaleString('en-US')} ج.م`);
       }
 
       if (!isReceiving && line.balance < total && !data.overrideLimit) {
@@ -1086,12 +1109,20 @@ export const api = {
 
       if (isReceiving) {
         line.balance += amount;
+        line.todayReceiveUsed = (line.todayReceiveUsed || 0) + amount;
+        line.monthReceiveUsed = (line.monthReceiveUsed || 0) + amount;
+        line.remainingDailyReceive = Math.max(0, dailyCap - (line.todayReceiveUsed || 0));
+        line.remainingMonthlyReceive = Math.max(0, monthlyCap - (line.monthReceiveUsed || 0));
         line.todayUsed = (line.todayUsed || 0) + amount;
         line.monthUsed = (line.monthUsed || 0) + amount;
         line.todayCount = (line.todayCount || 0) + 1;
         line.monthCount = (line.monthCount || 0) + 1;
       } else {
         line.balance -= total;
+        line.todayTransferUsed = (line.todayTransferUsed || 0) + total;
+        line.monthTransferUsed = (line.monthTransferUsed || 0) + total;
+        line.remainingDailyTransfer = Math.max(0, dailyCap - (line.todayTransferUsed || 0));
+        line.remainingMonthlyTransfer = Math.max(0, monthlyCap - (line.monthTransferUsed || 0));
         line.todayUsed = (line.todayUsed || 0) + total;
         line.monthUsed = (line.monthUsed || 0) + total;
         line.todayCount = (line.todayCount || 0) + 1;
