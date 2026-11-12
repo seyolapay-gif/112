@@ -384,7 +384,7 @@ const MainAppContent: React.FC = () => {
         )}
 
         {currentTab === 'vaults' && user && (
-          <VaultsManagementView currentUser={user} settings={settings} />
+          <VaultsManagementView currentUser={user} settings={settings} onNavigateTab={setCurrentTab} />
         )}
 
         {(currentTab === 'profits' || currentTab === 'reports') && (

@@ -2899,7 +2899,7 @@ async function startServer() {
   // 9.4. Update vault details (Admin / Operations)
   app.put('/api/vaults/:id', authMiddleware, requireRole(['admin', 'operations']), (req: Request, res: Response) => {
     const { id } = req.params;
-    const { name, branch, assignedEmployeeId, status, minBalance, maxBalance, notes } = req.body;
+    const { name, code, branch, assignedEmployeeId, status, minBalance, maxBalance, notes } = req.body;
     const user = (req as any).user as User;
 
     const vault = (db.vaults || []).find(v => v.id === id);
@@ -2908,6 +2908,7 @@ async function startServer() {
     }
 
     if (name && name.trim()) vault.name = name.trim();
+    if (code && code.trim()) vault.code = code.trim();
     if (branch !== undefined) vault.branch = branch.trim();
     if (status && (status === 'active' || status === 'suspended')) vault.status = status;
     if (minBalance !== undefined) vault.minBalance = Number(minBalance);
